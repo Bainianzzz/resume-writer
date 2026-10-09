@@ -4,7 +4,6 @@ import {
   SelectContent,
   SelectIcon,
   SelectItem,
-  SelectItemIndicator,
   SelectItemText,
   SelectPortal,
   SelectRoot,
@@ -136,7 +135,6 @@ function handleClear(): void {
           <SelectViewport class="rw-select-viewport">
             <SelectItem v-for="p in state.profiles" :key="p.id" :value="p.id" class="rw-select-item">
               <SelectItemText>{{ p.name }}（{{ p.count }}）</SelectItemText>
-              <SelectItemIndicator class="rw-select-indicator">✓</SelectItemIndicator>
             </SelectItem>
           </SelectViewport>
         </SelectContent>

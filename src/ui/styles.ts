@@ -45,7 +45,6 @@ export const PANEL_CSS = `
 .rw-select-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: #1f2329; cursor: pointer; outline: none; }
 .rw-select-item[data-highlighted] { background: #f2f3f5; }
 .rw-select-item[data-state="checked"] { color: #3370ff; font-weight: 500; }
-.rw-select-indicator { color: #3370ff; font-size: 12px; }
 
 /* Reka Switch（布尔开关） */
 .rw-switch-row { display: flex; align-items: center; gap: 8px; }
