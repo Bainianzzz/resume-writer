@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { toastState } from './store';
+import { ToastDescription, ToastRoot, ToastViewport, useToastManager } from 'reka-ui';
+
+const { toasts } = useToastManager();
 </script>
 
 <template>
-  <div class="rw-toast" :class="{ 'rw-show': toastState.show }">{{ toastState.msg }}</div>
+  <ToastViewport class="rw-toast-viewport">
+    <ToastRoot v-for="t in toasts" :key="t.id" :toast="t" class="rw-toast">
+      <ToastDescription class="rw-toast-desc" />
+    </ToastRoot>
+  </ToastViewport>
 </template>

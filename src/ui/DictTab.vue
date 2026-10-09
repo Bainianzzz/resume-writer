@@ -1,5 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import {
+  SelectContent,
+  SelectIcon,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectPortal,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectViewport,
+} from 'reka-ui';
 import type { DictEntry } from '../types';
 import {
   emptyDict,
@@ -27,8 +39,8 @@ const filtered = computed<DictEntry[]>(() => {
 
 const shown = computed<DictEntry[]>(() => filtered.value.slice(0, 300));
 
-function onProfileChange(e: Event): void {
-  switchProfile((e.target as HTMLSelectElement).value);
+function onProfileChange(id: string): void {
+  switchProfile(id);
   toast('已切换身份');
 }
 
@@ -110,11 +122,22 @@ function handleClear(): void {
 <template>
   <div class="rw-field">
     <label class="rw-label">身份</label>
-    <select class="rw-select" :value="state.activeId" @change="onProfileChange">
-      <option v-for="p in state.profiles" :key="p.id" :value="p.id">
-        {{ p.name }}（{{ p.count }}）
-      </option>
-    </select>
+    <SelectRoot :model-value="state.activeId" @update:model-value="onProfileChange">
+      <SelectTrigger class="rw-select-trigger">
+        <SelectValue />
+        <SelectIcon class="rw-select-icon">▾</SelectIcon>
+      </SelectTrigger>
+      <SelectPortal>
+        <SelectContent class="rw-select-content" position="popper" :side-offset="4">
+          <SelectViewport class="rw-select-viewport">
+            <SelectItem v-for="p in state.profiles" :key="p.id" :value="p.id" class="rw-select-item">
+              <SelectItemText>{{ p.name }}（{{ p.count }}）</SelectItemText>
+              <SelectItemIndicator class="rw-select-indicator">✓</SelectItemIndicator>
+            </SelectItem>
+          </SelectViewport>
+        </SelectContent>
+      </SelectPortal>
+    </SelectRoot>
   </div>
   <div class="rw-row">
     <button class="rw-btn" @click="handleNew">新建</button>

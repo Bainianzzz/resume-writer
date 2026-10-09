@@ -20,6 +20,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "reka-ui": "^2.11.0",
     "vue": "^3.5.43"
   }
 }

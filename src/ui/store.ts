@@ -1,4 +1,5 @@
 import { reactive } from 'vue';
+import { createToastManager } from 'reka-ui';
 import type { Config, DictEntry, ProfileSummary } from '../types';
 import type { FillResult, LearnResult } from '../core';
 import {
@@ -41,17 +42,11 @@ export const state = reactive({
   activeId: activeProfileId(),
 });
 
-/** 顶部队列提示（原 panel.toast） */
-export const toastState = reactive({ msg: '', show: false });
-let toastTimer: number | undefined;
+/** 顶部队列提示（Reka Toast，可在组件外通过 manager 添加） */
+export const toastManager = createToastManager();
 
 export function toast(msg: string, duration = 2600): void {
-  toastState.msg = msg;
-  toastState.show = true;
-  window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => {
-    toastState.show = false;
-  }, duration);
+  toastManager.add({ description: msg, duration });
 }
 
 /** 从 GM 存储重新读取到响应式镜像 */

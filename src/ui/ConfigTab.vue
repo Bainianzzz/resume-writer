@@ -1,11 +1,22 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
+import { SliderRange, SliderRoot, SliderThumb, SliderTrack, SwitchRoot, SwitchThumb } from 'reka-ui';
 import type { Config } from '../types';
 import { defaultConfig } from '../storage';
 import { testJevConnection } from '../match/jev';
 import { persistConfig, resetConfig, state, toast } from './store';
 
 const form = reactive<Config>({ ...state.config });
+
+// Reka Slider 的 modelValue 是 number[]，包一层单值读写
+const minScore = computed<number[]>({
+  get: () => [form.minScore],
+  set: (v) => (form.minScore = v[0]),
+});
+const minConfidence = computed<number[]>({
+  get: () => [form.jevMinConfidence],
+  set: (v) => (form.jevMinConfidence = v[0]),
+});
 
 // 存储侧变化（打开面板 refresh / 恢复默认）时同步到表单
 watch(
@@ -51,7 +62,12 @@ async function testConnection(): Promise<void> {
 <template>
   <div @input="scheduleSave" @change="scheduleSave">
     <div class="rw-field">
-      <label class="rw-switch"><input type="checkbox" v-model="form.jevEnabled" /> 启用 Jev 语义匹配</label>
+      <div class="rw-switch-row">
+        <SwitchRoot v-model="form.jevEnabled" class="rw-switch" @update:model-value="scheduleSave">
+          <SwitchThumb class="rw-switch-thumb" />
+        </SwitchRoot>
+        <span class="rw-switch-label">启用 Jev 语义匹配</span>
+      </div>
       <div class="rw-hint">本地匹配不到时，调用 Jev 从字典中选择最合适的字段。</div>
     </div>
     <div class="rw-field">
@@ -77,14 +93,31 @@ async function testConnection(): Promise<void> {
     </div>
     <div class="rw-field">
       <label class="rw-label">本地匹配阈值：<span>{{ form.minScore }}</span></label>
-      <input type="range" min="0.3" max="1" step="0.01" v-model.number="form.minScore" />
+      <SliderRoot
+        v-model="minScore"
+        class="rw-slider"
+        :min="0.3"
+        :max="1"
+        :step="0.01"
+        @update:model-value="scheduleSave"
+      >
+        <SliderTrack class="rw-slider-track"><SliderRange class="rw-slider-range" /></SliderTrack>
+        <SliderThumb class="rw-slider-thumb" />
+      </SliderRoot>
     </div>
     <div class="rw-field">
       <label class="rw-label">Jev 最低置信度：<span>{{ form.jevMinConfidence }}</span></label>
-      <input type="range" min="0" max="1" step="0.01" v-model.number="form.jevMinConfidence" />
-    </div>
-    <div class="rw-field">
-      <label class="rw-switch"><input type="checkbox" v-model="form.autoFillOnLoad" /> 页面加载后自动尝试填报</label>
+      <SliderRoot
+        v-model="minConfidence"
+        class="rw-slider"
+        :min="0"
+        :max="1"
+        :step="0.01"
+        @update:model-value="scheduleSave"
+      >
+        <SliderTrack class="rw-slider-track"><SliderRange class="rw-slider-range" /></SliderTrack>
+        <SliderThumb class="rw-slider-thumb" />
+      </SliderRoot>
     </div>
     <div class="rw-row">
       <button class="rw-btn rw-primary" @click="save">保存设置</button>
