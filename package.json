@@ -1,0 +1,20 @@
+{
+  "name": "resume-writer",
+  "private": true,
+  "version": "0.7.4",
+  "type": "module",
+  "description": "网申快速填报助手 —— 学习网申表单内容，并在其他页面一键匹配填报（Tampermonkey 油猴脚本）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "tsx test/label.test.ts && tsx test/scan.test.ts"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.11",
+    "vite-plugin-monkey": "^8.1.1"
+  }
+}
