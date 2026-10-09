@@ -27,6 +27,7 @@ src/
   types.ts             共享类型
   dom/
     label.ts           字段标签解析（label/aria/placeholder/表格/兄弟节点），按可信度排序
+    custom.ts          自定义下拉组件（UDesign / antd 风格）的识别与已选值读取
     scanner.ts         扫描页面得到 FieldDescriptor[]
     setter.ts          写入各类控件并派发事件（兼容 React/Vue）
   match/
@@ -82,6 +83,7 @@ Reka 弹出层默认 teleport 到 `document.body`，会逃出 shadow root。`App
 | `core.ts` | `learnPage()`（读表单写字典）、`fillPage()`（匹配后写回） |
 | `storage.ts` | GM 存储读写：配置、多身份字典（profiles）、导入导出合并 |
 | `dom/label.ts` | 从 label/aria/placeholder/表格/兄弟节点推断标签，产出按可信度排序的候选 |
+| `dom/custom.ts` | 识别自定义下拉组件，读取已选值 |
 | `dom/scanner.ts` | 扫描页面，产出 `FieldDescriptor[]`（种类、标签、候选、选择器） |
 | `dom/setter.ts` | `fillField()` 同步写入；`fillAsyncField()` 处理自定义组件与区间字段 |
 | `match/text.ts` | 归一化、同义词组、Dice 相似度 |
