@@ -1,6 +1,5 @@
-import { GM_addStyle, GM_registerMenuCommand } from '$';
-import { PANEL_CSS } from './ui/styles';
-import { Panel } from './ui/panel';
+import { GM_registerMenuCommand } from '$';
+import { mountPanel } from './ui/panel';
 import { fillPage, learnPage } from './core';
 import { scanFields } from './dom/scanner';
 import { loadConfig } from './storage';
@@ -8,9 +7,7 @@ import { loadConfig } from './storage';
 function bootstrap(): void {
   if (document.getElementById('rw-root')) return;
 
-  GM_addStyle(PANEL_CSS);
-
-  const panel = new Panel({
+  const panel = mountPanel({
     learn: learnPage,
     fill: fillPage,
     countFields: () => scanFields().length,

@@ -1,6 +1,6 @@
 export const PANEL_CSS = `
-#rw-root, #rw-root * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-#rw-root { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; color: #1f2329; font-size: 13px; line-height: 1.5; }
+:host, :host * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+:host { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; color: #1f2329; font-size: 13px; line-height: 1.5; }
 .rw-fab { width: 52px; height: 52px; border-radius: 50%; background: #3370ff; color: #fff; border: none; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .rw-fab:hover { background: #245bdb; }
 .rw-panel { position: absolute; right: 0; bottom: 64px; width: 380px; height: min(448px, 59vh); overflow: hidden; background: #fff; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }

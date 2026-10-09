@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.8.0",
   "type": "module",
-  "description": "网申快速填报助手 —— 学习网申表单内容，并在其他页面一键匹配填报（Tampermonkey 油猴脚本）",
+  "description": "Tampermonkey userscript that learns job-application form fields and autofills them on other pages.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,10 +12,14 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.9",
     "jsdom": "^30.1.2",
     "typescript": "^6.0.3",
     "vite": "^8.0.11",
     "vite-plugin-monkey": "^8.1.1",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "vue": "^3.5.43"
   }
 }
