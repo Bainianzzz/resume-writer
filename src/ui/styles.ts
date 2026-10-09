@@ -36,7 +36,8 @@ export const PANEL_CSS = `
 .rw-select-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid #dee0e3; border-radius: 6px; font-size: 13px; background: #fff; color: #1f2329; cursor: pointer; }
 .rw-select-trigger:hover { border-color: #c9cdd4; }
 .rw-select-trigger[data-state="open"], .rw-select-trigger:focus { outline: none; border-color: #3370ff; box-shadow: 0 0 0 2px rgba(51,112,255,.12); }
-.rw-select-icon { color: #8f959e; font-size: 10px; transition: transform .15s; }
+.rw-select-icon { display: flex; align-items: center; color: #8f959e; transition: transform .15s; }
+.rw-select-icon svg { display: block; }
 .rw-select-trigger[data-state="open"] .rw-select-icon { transform: rotate(180deg); }
 .rw-select-content { z-index: 2147483647; min-width: var(--reka-select-trigger-width); max-height: var(--reka-select-content-available-height); background: #fff; border: 1px solid #e5e6eb; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.14); overflow: hidden; }
 .rw-select-viewport { padding: 4px; }
