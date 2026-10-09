@@ -3,7 +3,7 @@ export const PANEL_CSS = `
 :host { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; color: #1f2329; font-size: 13px; line-height: 1.5; }
 .rw-fab { width: 52px; height: 52px; border-radius: 50%; background: #3370ff; color: #fff; border: none; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .rw-fab:hover { background: #245bdb; }
-.rw-panel { position: absolute; right: 0; bottom: 64px; width: 380px; height: min(482px, 80vh); overflow: hidden; background: #fff; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }
+.rw-panel { position: absolute; right: 0; bottom: 64px; width: 380px; height: min(426px, 80vh); overflow: hidden; background: #fff; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }
 .rw-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e5e6eb; }
 .rw-title { font-weight: 600; font-size: 14px; }
 .rw-icon-btn { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; background: none; border: none; cursor: pointer; color: #646a73; border-radius: 4px; }
