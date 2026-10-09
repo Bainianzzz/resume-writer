@@ -7,17 +7,9 @@
 
 产物是单文件 `dist/resume-writer.user.js`，用 Tampermonkey / Violentmonkey 安装。
 
-## 快速开始
+## 安装
 
-```bash
-npm install
-npm run dev      # 开发：Vite 会启动并把 userscript 在浏览器打开
-npm run build    # 构建：生成 dist/resume-writer.user.js
-```
-
-安装方式：
-1. 打开 Tampermonkey 面板 → 「添加新脚本」，或把 `dist/resume-writer.user.js` 拖进浏览器。
-2. `npm run dev` 时，Vite 会在控制台给出一个可安装的 dev 用户脚本链接，点开即装。
+把 `dist/resume-writer.user.js` 拖进浏览器，或在 Tampermonkey 面板「添加新脚本」里粘贴。本地开发与构建见 [DEVELOPMENT](./DEVELOPMENT.md)。
 
 ## 使用
 
@@ -41,48 +33,14 @@ npm run build    # 构建：生成 dist/resume-writer.user.js
 | Jev 模型 | 默认 `jev-latest` |
 | Jev 最低置信度 | 低于该值的结果不采用 |
 
-实现方式：把每个待匹配字段作为一个 `choice` 问题，选项直接使用字典 key（语义化），已保存信息放在 `state.saved_info` 供模型引用，一次请求批量判断（Jev 的多个 question 会并行执行）。
-
 点「测试连接」会发一个最小的 `noul` 请求，直接告诉你 key / 地址 / 模型是否可用。
 
-请求走 `GM_xmlhttpRequest`（脚本声明了 `@connect api.typesafe.ai` / `@connect jevtypesafeai.com`），以绕过页面 CORS。
+> API Key 存在浏览器本地（GM 存储），请求由脚本直接发起。这是个人自用脚本的取舍；若长期多人使用，建议改为自建后端转发。实现细节见 [ARCHITECTURE](./ARCHITECTURE.md#jev-集成)。
 
-请求失败时（网络错误、`429`/`529` 等）会按指数退避自动重试（最多 3 次，遵循 `Retry-After`）；仍失败则把错误显示在填报结果里，而不是静默当作“未匹配”。
+## 文档
 
-> 注意：API Key 存在浏览器本地（GM 存储），请求由脚本直接发起。这是个人自用脚本的取舍；若长期多人使用，建议改为自建后端转发。
-
-## 架构
-
-```
-src/
-  main.ts              入口：注册面板、菜单命令、自动填报
-  core.ts              learnPage() / fillPage() 两个核心流程
-  storage.ts           GM 存储：字典增删改查、配置、导入导出合并
-  types.ts             共享类型
-  dom/
-    label.ts           通用字段标签解析（label/aria/placeholder/表格/兄弟节点）
-    scanner.ts         扫描页面得到 FieldDescriptor[]
-    setter.ts          写入各类控件并派发事件（兼容 React/Vue）
-  match/
-    text.ts            归一化、同义词组、Dice 相似度
-    local.ts           本地匹配 + 候选排序
-    jev.ts             Jev choice 匹配客户端
-  ui/
-    panel.ts           悬浮面板（操作 / 字典 / 设置）
-    styles.ts          面板样式
-```
-
-## 匹配策略
-
-1. **本地**：标签归一化后按 精确 → 同义词组 → 包含 → Dice 相似度 打分，取超过阈值（默认 0.62）的最高分。
-2. **Jev**：本地未命中的字段，取本地排序前 N 个候选交给 Jev 的 `choice` 原语判断，置信度不足或选「以上都不是」则跳过。
-3. **写入**：文本/日期/下拉/单选/多选/富文本分别处理，并派发 `input`/`change` 事件，尽量兼容前端框架。
-
-## 已知限制
-
-- 复杂自定义下拉组件（非原生 `<select>`）暂不自动填充。
-- 文件上传、验证码、密码框不处理。
-- 字典以标签为键，同一标签在不同站点含义不同时可能串味；可通过「字典」页手动改值。
+- [ARCHITECTURE](./ARCHITECTURE.md) —— 内部设计：Shadow DOM 隔离模型、模块职责、匹配流程、Jev 集成、存储模型、已知限制。
+- [DEVELOPMENT](./DEVELOPMENT.md) —— 本地搭建、开发流程、样式约束、测试、发布。
 
 ## Roadmap
 
