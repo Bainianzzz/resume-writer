@@ -32,7 +32,11 @@ watch(
         <div class="rw-head">
           <span class="rw-title">网申快速填报</span>
           <span>
-            <button class="rw-icon-btn" title="收起" @click="toggle">×</button>
+            <button class="rw-icon-btn" title="收起" aria-label="收起" @click="toggle">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </button>
           </span>
         </div>
         <TabsRoot v-model="state.tab" class="rw-tabs-root">
