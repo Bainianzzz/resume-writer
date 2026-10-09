@@ -103,8 +103,8 @@ function describeNative(el: HTMLElement): FieldDescriptor | null {
     if (!kind) return null;
     if (kind === 'radio') return null; // 由 wrapper 或分组逻辑处理
     if (kind === 'checkbox') {
-      // 单个复选框
-      return buildDescriptor(el, 'checkbox', el, [el], optionText(el), '是', []);
+      // 单个复选框：仅记录勾选状态
+      return buildDescriptor(el, 'checkbox', el, [el], optionText(el), el.checked ? '是' : '', []);
     }
     const value = el.value.trim();
     return buildDescriptor(el, 'text', el, [el], el.value, value, []);
@@ -166,12 +166,13 @@ function buildDescriptor(
 }
 
 /**
- * 以带 data-form-field-i18n-name 的 wrapper 为单位描述一个字段。
- * 覆盖 UDesign/formily：自定义 Select、单选组、日期区间、普通输入。
+ * 以带 data-form-field-i18n-name 的 wrapper 为单位描述字段。
+ * 一个 wrapper 可能含多个逻辑字段（如“意向城市”下拉 + “接受调剂”复选框），
+ * 因此返回数组。
  */
-function describeWrapper(w: HTMLElement): FieldDescriptor | null {
+function describeWrapper(w: HTMLElement): FieldDescriptor[] {
   const label = clean(w.getAttribute('data-form-field-i18n-name')) || explicitLabel(w);
-  if (!label) return null;
+  if (!label) return [];
   const key = clean(w.getAttribute('data-form-field-name')) || w.getAttribute('data-form-field-id') || '';
 
   const controls = [...w.querySelectorAll<HTMLElement>(CONTROLS)].filter(
@@ -203,10 +204,15 @@ function describeWrapper(w: HTMLElement): FieldDescriptor | null {
     groupKey: key || label,
   };
 
+  const out: FieldDescriptor[] = [];
+  let primary: FieldDescriptor | null = null;
+  /** 主控件之外、带自身文字标签的单个复选框（如“接受调剂到其他城市”） */
+  let extraCheckboxes: HTMLInputElement[] = [];
+
   // 单选组
   if (radios.length) {
     const checked = radios.find((r) => r.checked);
-    return {
+    primary = {
       ...base,
       kind: 'radio',
       el: radios[0],
@@ -215,12 +221,10 @@ function describeWrapper(w: HTMLElement): FieldDescriptor | null {
       options: radios.map(optionText),
       placeholder: '',
     };
-  }
-
-  // 复选框组
-  if (checkboxes.length > 1) {
+  } else if (checkboxes.length > 1) {
+    // 复选框组
     const checked = checkboxes.filter((c) => c.checked).map(optionText);
-    return {
+    primary = {
       ...base,
       kind: 'checkbox',
       el: checkboxes[0],
@@ -228,39 +232,26 @@ function describeWrapper(w: HTMLElement): FieldDescriptor | null {
       value: checked.join('、'),
       options: checkboxes.map(optionText),
     };
-  }
-
-  // 自定义 Select（有已选值节点 / combobox，但没有可编辑文本控件）
-  if (isCustomSelect(w) && editable.length === 0) {
+  } else if (isCustomSelect(w) && editable.length === 0) {
+    // 自定义 Select（有已选值节点 / combobox，但没有可编辑文本控件）
     const values = extractCustomValue(w);
-    return { ...base, kind: 'custom', value: values.join('、'), options: [] };
-  }
-
-  // 日期区间等：多个可编辑同类控件
-  if (editable.length > 1) {
+    primary = { ...base, kind: 'custom', value: values.join('、'), options: [] };
+    extraCheckboxes = checkboxes;
+  } else if (editable.length > 1) {
+    // 日期区间等：多个可编辑同类控件
     const values = editable
-      .map((c) => ("value" in c ? (c as HTMLInputElement).value.trim() : ''))
+      .map((c) => ('value' in c ? (c as HTMLInputElement).value.trim() : ''))
       .filter(Boolean);
-    return {
-      ...base,
-      kind: 'range',
-      targets: editable,
-      value: values.join(' ~ '),
-    };
-  }
-
-  // 单个可编辑控件
-  if (textarea) {
-    return { ...base, kind: 'textarea', el: textarea, targets: [textarea], value: textarea.value.trim() };
-  }
-  if (select) {
+    primary = { ...base, kind: 'range', targets: editable, value: values.join(' ~ ') };
+  } else if (textarea) {
+    primary = { ...base, kind: 'textarea', el: textarea, targets: [textarea], value: textarea.value.trim() };
+  } else if (select) {
     const opts = [...select.options].map((o) => clean(o.text)).filter(Boolean);
     const value = select.selectedIndex >= 0 ? clean(select.options[select.selectedIndex]?.text) : '';
-    return { ...base, kind: 'select', el: select, targets: [select], value, options: opts };
-  }
-  if (inputs.length === 1) {
+    primary = { ...base, kind: 'select', el: select, targets: [select], value, options: opts };
+  } else if (inputs.length === 1) {
     const input = inputs[0];
-    return {
+    primary = {
       ...base,
       kind: 'text',
       el: input,
@@ -269,9 +260,36 @@ function describeWrapper(w: HTMLElement): FieldDescriptor | null {
       placeholder: input.placeholder || '',
       value: input.value.trim(),
     };
+  } else if (checkboxes.length === 1) {
+    // 单个复选框（wrapper 即该复选框）
+    const cb = checkboxes[0];
+    primary = { ...base, kind: 'checkbox', el: cb, targets: [cb], value: cb.checked ? '是' : '' };
   }
 
-  return null;
+  if (primary) out.push(primary);
+
+  // 同一 wrapper 内附带的、有自身文字的复选框，单独成字段
+  for (const cb of extraCheckboxes) {
+    const text = optionText(cb);
+    if (!text) continue;
+    out.push({
+      el: cb,
+      kind: 'checkbox',
+      targets: [cb],
+      inputType: 'checkbox',
+      labels: [text],
+      label: text,
+      name: ownKey(cb),
+      id: cb.getAttribute('id') || '',
+      placeholder: '',
+      value: cb.checked ? '是' : '',
+      options: [],
+      selector: cssPath(cb),
+      groupKey: ownKey(cb) || text,
+    });
+  }
+
+  return out;
 }
 
 /** 所有“字段 wrapper”（带标签元数据、非控件本身），取最外层 */
@@ -286,15 +304,23 @@ function wrapperCandidates(): HTMLElement[] {
   });
 }
 
+/** 容器标题：去掉内部控件与选项 label 后的剩余文本（用于原生单选/复选组的组标签） */
+function containerTitle(container: Element): string {
+  const clone = container.cloneNode(true) as HTMLElement;
+  clone
+    .querySelectorAll('input,select,textarea,button,script,style,label')
+    .forEach((n) => n.remove());
+  return clean(clone.textContent);
+}
+
 /** 扫描页面，返回所有可处理字段 */
 export function scanFields(): FieldDescriptor[] {
   const descriptors: FieldDescriptor[] = [];
 
-  // 1) formily / UDesign：以 wrapper 为单位
+  // 1) formily / UDesign：以 wrapper 为单位（一个 wrapper 可能产出多个字段）
   for (const w of wrapperCandidates()) {
     try {
-      const d = describeWrapper(w);
-      if (d) descriptors.push(d);
+      descriptors.push(...describeWrapper(w));
     } catch {
       /* 忽略单个 wrapper 的解析错误 */
     }
@@ -316,7 +342,7 @@ export function scanFields(): FieldDescriptor[] {
 
     // 原生单选组
     if (el instanceof HTMLInputElement && el.type === 'radio') {
-      if (!isEditableControl(el)) continue;
+      if (el.disabled) continue;
       const name = el.getAttribute('name') || el.closest('form')?.getAttribute('data-id') || '';
       const scope: ParentNode = el.closest('form') ?? document;
       const group = name
@@ -325,13 +351,15 @@ export function scanFields(): FieldDescriptor[] {
       const gk = name ? `radio:name:${name}` : `radio:dom:${cssPath(el.parentElement ?? el)}`;
       if (radioGroups.has(gk)) continue;
       const checked = group.find((r) => r.checked);
+      const container = el.closest('fieldset,[role="radiogroup"],.radio-group,td,div');
+      const groupTitle = container ? containerTitle(container) : '';
       const d: FieldDescriptor = {
         el: group[0] ?? el,
         kind: 'radio',
         targets: group,
         inputType: 'radio',
         labels: collectLabels(el),
-        label: explicitLabel(el) || collectLabels(el)[0] || name || '(未命名字段)',
+        label: explicitLabel(el) || groupTitle || collectLabels(el)[0] || name || '(未命名字段)',
         name,
         id: el.getAttribute('id') || '',
         placeholder: '',

@@ -1,71 +1,75 @@
-// 标签解析验证：用真实结构（formily/得物）与常见 HTML 结构跑一遍
-// 运行：npx tsx test/label.test.ts  或   node --experimental-strip-types
-import { JSDOM } from 'jsdom';
+import { describe, expect, it } from 'vitest';
+import { collectLabels, explicitKey, explicitLabel, isFormatPlaceholder, ownKey } from '../src/dom/label';
 
-const cases: Array<{ name: string; html: string; expectLabel: string }> = [
-  {
-    name: 'formily（得物）: 显式属性在容器与 input 上',
-    html: `<div data-form-field-id="link" data-form-field-name="link" data-form-field-i18n-name="项目链接" id="formily-item-link" class="ud-formily-item"><div class="ud-formily-item-label"><div class="ud-formily-item-label-content"><span><label>项目链接</label></span></div></div><div class="ud-formily-item-control"><div class="ud-formily-item-control-content"><div class="ud__input"><label class="ud__input-input-wrap"><div><input class="ud__native-input" data-form-field-id="link" data-form-field-name="link" data-form-field-i18n-name="项目链接" value="https://github.com/x/y"></div></label></div></div></div></div>`,
-    expectLabel: '项目链接',
-  },
-  {
-    name: 'formily 日期字段（避免把 YYYY-MM 当标签）',
-    html: `<div data-form-field-id="time" data-form-field-name="time" data-form-field-i18n-name="起止时间"><div class="label">起止时间</div><div class="control"><input type="month" placeholder="YYYY-MM" value="2027-07"></div></div>`,
-    expectLabel: '起止时间',
-  },
-  {
-    name: '标准 label[for]',
-    html: `<label for="name">姓名</label><input id="name" type="text">`,
-    expectLabel: '姓名',
-  },
-  {
-    name: '包裹式 label',
-    html: `<label>邮箱 <input type="email"></label>`,
-    expectLabel: '邮箱',
-  },
-  {
-    name: 'aria-label',
-    html: `<div><input aria-label="手机号码" type="tel"></div>`,
-    expectLabel: '手机号码',
-  },
-  {
-    name: '表格：左侧单元格为标签',
-    html: `<table><tr><td>毕业院校</td><td><input type="text"></td></tr></table>`,
-    expectLabel: '毕业院校',
-  },
-  {
-    name: '前置兄弟文本',
-    html: `<div><span>专业名称</span><input type="text"></div>`,
-    expectLabel: '专业名称',
-  },
-];
-
-function load(html: string) {
-  const dom = new JSDOM(`<!doctype html><html><body>${html}</body></html>`);
-  const g: any = globalThis;
-  g.window = dom.window;
-  g.document = dom.window.document;
-  g.CSS = dom.window.CSS;
-  g.HTMLElement = dom.window.HTMLElement;
-  g.HTMLInputElement = dom.window.HTMLInputElement;
-  g.HTMLSelectElement = dom.window.HTMLSelectElement;
-  g.HTMLTextAreaElement = dom.window.HTMLTextAreaElement;
-  return dom;
+function mount(html: string): HTMLElement {
+  document.body.innerHTML = html;
+  return document.body;
 }
 
-const { collectLabels, explicitLabel } = await import('../src/dom/label.ts');
+describe('isFormatPlaceholder', () => {
+  it('识别纯格式占位符', () => {
+    for (const s of ['YYYY-MM', 'YYYY-MM-DD', 'yyyy/mm/dd', 'YYYY年MM月']) {
+      expect(isFormatPlaceholder(s)).toBe(true);
+    }
+  });
 
-let pass = 0;
-let fail = 0;
-for (const c of cases) {
-  const dom = load(c.html);
-  const el = dom.window.document.querySelector('input,select,textarea') as HTMLElement;
-  const labels = collectLabels(el);
-  const got = explicitLabel(el) || labels[0] || '';
-  const ok = got === c.expectLabel;
-  if (ok) pass++;
-  else fail++;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${c.name}\n      expect="${c.expectLabel}" got="${got}" labels=${JSON.stringify(labels)}`);
-}
-console.log(`\n${pass} passed, ${fail} failed`);
-if (fail) process.exit(1);
+  it('不误伤正常占位符', () => {
+    for (const s of ['请选择', '请输入姓名', '邮箱', '2023-09']) {
+      expect(isFormatPlaceholder(s)).toBe(false);
+    }
+  });
+});
+
+describe('explicitLabel / ownKey', () => {
+  it('读取 data-form-field-i18n-name 作为标签', () => {
+    mount(
+      `<div data-form-field-id="link" data-form-field-name="link" data-form-field-i18n-name="项目链接">
+         <input class="ud__native-input" data-form-field-id="link" data-form-field-name="link" data-form-field-i18n-name="项目链接">
+       </div>`,
+    );
+    const input = document.querySelector('input') as HTMLElement;
+    expect(explicitLabel(input)).toBe('项目链接');
+  });
+
+  it('ownKey 只读元素自身属性，不向祖先查找', () => {
+    mount(
+      `<div data-form-field-name="gender"><input role="combobox" class="ud__select__selector__search__input"></div>`,
+    );
+    const input = document.querySelector('input') as HTMLElement;
+    expect(ownKey(input)).toBe('');
+    expect(explicitKey(input)).toBe('gender');
+  });
+});
+
+describe('collectLabels', () => {
+  it('label[for]', () => {
+    mount(`<label for="name">姓名</label><input id="name" type="text">`);
+    expect(collectLabels(document.querySelector('input') as HTMLElement)[0]).toBe('姓名');
+  });
+
+  it('包裹式 label', () => {
+    mount(`<label>邮箱 <input type="email"></label>`);
+    expect(collectLabels(document.querySelector('input') as HTMLElement)[0]).toBe('邮箱');
+  });
+
+  it('aria-label', () => {
+    mount(`<div><input aria-label="手机号码" type="tel"></div>`);
+    expect(collectLabels(document.querySelector('input') as HTMLElement)[0]).toBe('手机号码');
+  });
+
+  it('表格左侧单元格', () => {
+    mount(`<table><tr><td>毕业院校</td><td><input type="text"></td></tr></table>`);
+    expect(collectLabels(document.querySelector('input') as HTMLElement)[0]).toBe('毕业院校');
+  });
+
+  it('前置兄弟文本', () => {
+    mount(`<div><span>专业名称</span><input type="text"></div>`);
+    expect(collectLabels(document.querySelector('input') as HTMLElement)[0]).toBe('专业名称');
+  });
+
+  it('纯格式 placeholder 不被当作标签', () => {
+    mount(`<div><input type="month" placeholder="YYYY-MM"></div>`);
+    const labels = collectLabels(document.querySelector('input') as HTMLElement);
+    expect(labels).not.toContain('YYYY-MM');
+  });
+});
