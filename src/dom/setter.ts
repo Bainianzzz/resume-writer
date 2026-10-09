@@ -276,57 +276,97 @@ function pickOption(options: HTMLElement[], target: string): { el: HTMLElement; 
   return best ? { el: best, score: bestScore } : null;
 }
 
+/** 找到组件的可点击触发器 */
+function findTrigger(root: HTMLElement): HTMLElement {
+  return (
+    root.querySelector<HTMLElement>('[role="combobox"]') ??
+    root.querySelector<HTMLElement>('[class*="select-selection"]') ??
+    root.querySelector<HTMLElement>('[class*="selector"]') ??
+    root.querySelector<HTMLElement>('[class*="select"]') ??
+    root
+  );
+}
+
+/** 组件内可用于过滤的可编辑搜索框（存在且可用才返回） */
+function usableSearch(root: HTMLElement): HTMLInputElement | null {
+  for (const input of root.querySelectorAll<HTMLInputElement>('input')) {
+    if (input.readOnly) continue;
+    if (input.type !== 'search' && !/search/i.test(input.className)) continue;
+    if (isShown(input)) return input;
+  }
+  return null;
+}
+
+/** 打开下拉并等待选项出现（若已展开则不重复点击） */
+async function openAndWait(trigger: HTMLElement): Promise<HTMLElement[]> {
+  if (trigger.getAttribute('aria-expanded') !== 'true') clickEl(trigger);
+  let options = await waitForOptions(1400);
+  if (!options.length) {
+    clickEl(trigger); // 兜底：强制切换一次
+    options = await waitForOptions(1400);
+  }
+  return options;
+}
+
+function closeDropdown(trigger: HTMLElement): void {
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  if (trigger.getAttribute('aria-expanded') === 'true') clickEl(trigger);
+}
+
 /**
- * 填充自定义组件（div 型 select）。模拟交互：
- * 打开下拉 -> 可搜索则输入关键字 -> 点选目标项 -> 收起。
- * 支持多选：逐个选择。带轮询与重试，兼容渲染延迟。
+ * 填充自定义组件（div 型 select，单选或多选）。
+ * 只打开一次下拉，逐个点击目标项（多选保持展开），最后收起。
+ * 选项不可见时再用搜索框过滤。带轮询与重试，兼容渲染延迟。
  */
 export async function fillCustomSelect(
   field: FieldDescriptor,
   values: string[],
 ): Promise<boolean> {
   const root = field.el;
-  const trigger =
-    root.querySelector<HTMLElement>('[class*="selector"]') ??
-    root.querySelector<HTMLElement>('[role="combobox"]') ??
-    root.querySelector<HTMLElement>('[class*="select-selection"]') ??
-    root;
-  const already = () => new Set(extractCustomValue(root));
+  const wanted = values.map((v) => v.trim()).filter(Boolean);
+  if (!wanted.length) return false;
+
+  const before = new Set(extractCustomValue(root));
+  const todo = wanted.filter((v) => !before.has(v));
+  if (!todo.length) return true; // 已经都是目标值
+
+  const trigger = findTrigger(root);
+  if (!(await openAndWait(trigger)).length) return false;
+
   let any = false;
+  for (const target of todo) {
+    // 先直接在当前选项里找
+    let picked = pickOption(dropdownOptions(), target);
+    let searchUsed = false;
 
-  for (const raw of values) {
-    const target = raw.trim();
-    if (!target || already().has(target)) continue;
-
-    // 可搜索组件：先尝试输入关键字过滤（readonly 的搜索框改 value 无效）
-    let opened = false;
-    for (let attempt = 0; attempt < 2 && !opened; attempt++) {
-      clickEl(trigger);
-      const search = root.querySelector<HTMLInputElement>('input[class*="search" i]:not([readonly])');
+    // 找不到再尝试用搜索框过滤
+    if (!picked || picked.score < 0.5) {
+      const search = usableSearch(root);
       if (search) {
         setNativeValue(search, target);
-      }
-      const options = await waitForOptions(attempt === 0 ? 1200 : 1600);
-      if (!options.length) continue;
-
-      const picked = pickOption(options, target);
-      if (picked && picked.score >= 0.5) {
-        clickEl(picked.el);
-        await sleep(250);
-        // 校验是否真的选上，没选上则重试
-        if (already().has(target)) {
-          opened = true;
-          any = true;
-        }
-      } else {
-        break; // 下拉已打开但没有匹配项，不必重试
+        searchUsed = true;
+        await sleep(280);
+        picked = pickOption(dropdownOptions(), target);
       }
     }
 
-    // 收起下拉
-    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await sleep(120);
+    if (picked && picked.score >= 0.5) {
+      clickEl(picked.el);
+      await sleep(260);
+      // 校验：选上则计入成功（多选会保持展开，元素会重渲染，故每轮重新查询）
+      if (new Set(extractCustomValue(root)).has(target)) any = true;
+    }
+
+    if (searchUsed) {
+      const search = usableSearch(root);
+      if (search) {
+        setNativeValue(search, '');
+        await sleep(120);
+      }
+    }
   }
 
-  return any;
+  closeDropdown(trigger);
+  const after = new Set(extractCustomValue(root));
+  return any || wanted.every((v) => after.has(v));
 }

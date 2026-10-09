@@ -163,4 +163,59 @@ describe('fillCustomSelect：模拟交互', () => {
     expect(await fillCustomSelect(field('custom', root), ['硕士'])).toBe(true);
     expect(root.querySelector('.ud__select__selector__selectItem')!.textContent).toBe('硕士');
   });
+
+  it('多选：打开一次、连选多个、再收起', async () => {
+    // atsx-select 多选结构：触发器 + 挂在 body 的下拉
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div class="atsx-select-selection atsx-select-selection--multiple" role="combobox" aria-expanded="false">
+        <div class="atsx-select-selection__rendered"><ul></ul></div>
+      </div>`;
+    document.body.appendChild(root);
+    const trigger = root.querySelector('.atsx-select-selection') as HTMLElement;
+    const ul = root.querySelector('ul')!;
+    let clickCount = 0;
+
+    const selectedTexts = () =>
+      [...ul.querySelectorAll('li')].map((li) => (li.textContent || '').trim());
+
+    const renderDropdown = () => {
+      const dd = document.createElement('div');
+      dd.className = 'atsx-select-dropdown';
+      for (const v of ['上海', '杭州', '北京']) {
+        const li = document.createElement('li');
+        li.className = 'atsx-select-dropdown-menu-item';
+        li.textContent = v;
+        li.addEventListener('click', () => {
+          if (selectedTexts().includes(v)) return;
+          const chip = document.createElement('li');
+          chip.className = 'atsx-select-selection__choice';
+          chip.textContent = v;
+          ul.appendChild(chip);
+        });
+        dd.appendChild(li);
+      }
+      document.body.appendChild(dd);
+    };
+
+    // 点击触发器切换展开/收起
+    trigger.addEventListener('mousedown', () => {
+      clickCount++;
+      const open = trigger.getAttribute('aria-expanded') === 'true';
+      if (open) {
+        trigger.setAttribute('aria-expanded', 'false');
+        document.querySelector('.atsx-select-dropdown')?.remove();
+      } else {
+        trigger.setAttribute('aria-expanded', 'true');
+        renderDropdown();
+      }
+    });
+
+    const ok = await fillAsyncField(field('custom', root), '北京、杭州');
+    expect(ok).toBe(true);
+    expect(selectedTexts().sort()).toEqual(['北京', '杭州']);
+    // 打开一次 + 收起一次
+    expect(clickCount).toBe(2);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
 });
