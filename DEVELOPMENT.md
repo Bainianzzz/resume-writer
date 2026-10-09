@@ -77,3 +77,7 @@ npm run build
 ```
 
 产物为单文件 `dist/resume-writer.user.js`。userscript 的 `name` / `namespace` / `description` / `match` / `connect` 等元数据在 `vite.config.ts` 的 `monkey({ userscript: { ... } })` 中维护。
+
+## 提交
+
+改完代码默认**不自动提交**——把改动留在工作区由用户审阅。只有用户明确要求「提交」时才执行 `git commit`。规则同样记录在 [AGENTS.md → 提交](./AGENTS.md#提交)。

@@ -9,9 +9,8 @@
 脚本 `@match *://*/*`，在 `document-idle` 运行。启动流程：
 
 1. `bootstrap()`：若页面已有 `#rw-root` 则直接返回（防重复注入）。
-2. `mountPanel()`：建宿主元素、挂 Shadow DOM、注入样式、挂载 Vue 应用。
+2. `mountPanel()`：建宿主元素、挂 Shadow DOM、注入样式、建 shadow 内 portal 容器、挂载 Vue 应用。
 3. 注册 GM 菜单命令（显示/隐藏面板、学习本页、一键填报）。
-4. 若配置了 `autoFillOnLoad`，延迟 1.5s 自动尝试填报。
 
 两条核心链路：
 
@@ -22,7 +21,7 @@
 
 ```
 src/
-  main.ts              入口：注册面板、菜单命令、自动填报
+  main.ts              入口：注册面板、菜单命令
   core.ts              learnPage() / fillPage() 两个核心流程
   storage.ts           GM 存储：字典增删改查、配置、导入导出合并
   types.ts             共享类型
@@ -35,13 +34,13 @@ src/
     local.ts           本地匹配 + 候选排序
     jev.ts             Jev choice 匹配客户端
   ui/
-    panel.ts          挂载面板到 Shadow DOM（样式注入 + Vue 实例）
-    store.ts          面板响应式状态 + GM 存储桥接
-    App.vue           面板外壳（头部 / 标签页 / 悬浮球）
+    panel.ts          挂载面板到 Shadow DOM（样式注入 + portal 容器 + Vue 实例）
+    store.ts          面板响应式状态 + GM 存储桥接 + Reka toast manager
+    App.vue           面板外壳（ConfigProvider / ToastProvider / Tabs / 悬浮球）
     OpsTab.vue        操作标签页
-    DictTab.vue       字典标签页
-    ConfigTab.vue     设置标签页
-    Toast.vue         顶部提示
+    DictTab.vue       字典标签页（Reka Select）
+    ConfigTab.vue     设置标签页（Reka Switch / Slider）
+    Toast.vue         顶部提示（Reka Toast）
     styles.ts         面板样式（字符串，注入 Shadow DOM）
 test/                 单元测试（vitest + jsdom）
 ```
@@ -55,6 +54,7 @@ document
 └─ <div id="rw-root">        ← 宿主，在 light DOM，定位用内联样式
    └─ #shadow-root
       ├─ <style>             ← styles.ts 的 PANEL_CSS
+      ├─ <div data-rw-portal> ← Reka 弹出层的落点（ConfigProvider.teleportTo）
       └─ <div>               ← Vue 应用挂载点
 ```
 
@@ -62,13 +62,23 @@ document
 - **页面 → 面板**：shadow 边界挡住页面 CSS，面板内部不受影响。
 - **宿主元素例外**：`<div id="rw-root">` 本身在 light DOM。按 CSS Scoping 规范，宿主元素的普通声明**外部页面优先于** shadow 内的 `:host`。所以宿主的 `position/right/bottom/z-index/color/font-size/line-height` 必须用**内联样式**（权重高于页面普通规则）设置，不能写在 `:host` 里。
 
-样式写法与校验规则见 [AGENTS.md → 样式约束](./AGENTS.md#面板样式只进-shadow-dom)（唯一权威来源）。
+样式写法与校验规则见 [AGENTS.md → 面板样式只进 Shadow DOM](./AGENTS.md#面板样式只进-shadow-dom)（唯一权威来源）。
+
+## UI 层（Vue 3 + Reka UI）
+
+面板是 Vue 3 应用（`<script setup>`），交互原语用 **Reka UI**（headless，零自带 CSS），样式全在 `styles.ts`。
+
+用到：`ConfigProvider`、`Tabs`、`Select`、`Switch`、`Slider`、`Toast`（+ `createToastManager`）。
+
+关键点——**弹出层默认会被 teleport 到 `document.body`，从而逃出 shadow root**。`App.vue` 用 `ConfigProvider` 的 `teleportTo` 指到 shadow 内的 `[data-rw-portal]` 容器，并 `:scroll-body="false"`。约束与理由见 [AGENTS.md → 交互用 Reka UI](./AGENTS.md#交互用-reka-ui弹出层必须留在-shadow-dom)。
+
+状态：`store.ts` 持有 `reactive` 的 `state`（配置/字典/身份/当前 tab），并集中所有 GM 写操作；GM 存储非响应式，写完 `refresh()`。
 
 ## 核心模块
 
 | 模块 | 职责 |
 | --- | --- |
-| `main.ts` | 入口。防重复注入、挂载面板、注册菜单命令、按配置自动填报 |
+| `main.ts` | 入口。防重复注入、挂载面板、注册菜单命令 |
 | `core.ts` | `learnPage()`（读表单写字典）、`fillPage()`（匹配后写回表单） |
 | `storage.ts` | GM 存储读写：配置、多身份字典（profiles）、导入导出合并 |
 | `dom/label.ts` | 从 label/aria/placeholder/表格/兄弟节点推断字段标签，产出候选标签并按可信度排序 |
@@ -77,8 +87,8 @@ document
 | `match/text.ts` | 文本归一化、同义词组、Dice 相似度 |
 | `match/local.ts` | 本地匹配打分与候选排序 |
 | `match/jev.ts` | Jev `choice` 匹配客户端，含连接测试与重试 |
-| `ui/store.ts` | 面板响应式状态（`reactive`）+ GM 存储桥接：GM 存储非响应式，写后需 `refresh()` 重新镜像 |
-| `ui/panel.ts` | 建宿主、attachShadow、注入 `PANEL_CSS`、`createApp` 挂载 |
+| `ui/store.ts` | 面板响应式状态（`reactive`）+ GM 存储桥接 + Reka toast manager；GM 存储非响应式，写后需 `refresh()` |
+| `ui/panel.ts` | 建宿主、attachShadow、注入 `PANEL_CSS`、建 portal 容器、`createApp` 挂载 |
 
 ## 匹配与填报流程
 
@@ -101,7 +111,7 @@ document
 
 | 键 | 内容 |
 | --- | --- |
-| `rw:config:v1` | 全局配置（Jev 开关/Key/地址/模型、匹配阈值、自动填报等） |
+| `rw:config:v1` | 全局配置（Jev 开关/Key/地址/模型、匹配阈值、最低置信度等） |
 | `rw:profiles:v1` | 多身份字典：`{ activeId, profiles: Profile[] }` |
 | `rw:dict:v1` | 旧版单份字典，首次加载时迁移进默认身份 |
 
