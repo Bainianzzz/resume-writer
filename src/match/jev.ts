@@ -246,6 +246,112 @@ export async function jevMatch(tasks: JevFieldTask[], cfg: Config): Promise<JevM
   return { matches: result };
 }
 
+/** 一个需要 Jev 判断“该选哪个选项”的字段值 */
+export interface JevOptionTask {
+  field: FieldDescriptor;
+  /** 待判断的单个字典值片段（多选会拆成多条） */
+  value: string;
+  /** 页面上真实可选的选项文本 */
+  options: string[];
+}
+
+export interface JevOptionMatch {
+  field: FieldDescriptor;
+  /** 命中的页面选项文本 */
+  option: string;
+  confidence: number;
+  probability: number;
+}
+
+export interface JevOptionOutcome {
+  matches: JevOptionMatch[];
+  /** 请求层面的错误（网络/HTTP） */
+  error?: string;
+}
+
+/**
+ * 用 Jev 把字典里的值映射到页面真实选项。
+ * 单选/多选时字典值与选项措辞常常不一致（如“本科” vs “大学本科”），
+ * 本地字符串匹配失败后，把「字典值 + 实际选项」发给 Jev 判断应选哪一项。
+ * 每个待判断的值是一个 choice 问题，选项即页面选项文本。
+ */
+export async function jevPickOptions(
+  tasks: JevOptionTask[],
+  cfg: Config,
+): Promise<JevOptionOutcome> {
+  const matches: JevOptionMatch[] = [];
+  const usable = tasks.filter((t) => t.options.length > 0 && t.value.trim());
+  if (!cfg.jevApiKey || usable.length === 0) return { matches };
+
+  const state = {
+    page: {
+      title: document.title || '(无标题)',
+      host: location.host,
+    },
+  };
+
+  const questions: Record<string, unknown> = {};
+  const index = new Map<string, { task: JevOptionTask; optionByKey: Map<string, string> }>();
+
+  usable.forEach((task, i) => {
+    const qname = `option_${i}`;
+    const optionByKey = new Map<string, string>();
+    const criteria: Record<string, string> = {};
+    task.options.slice(0, 40).forEach((opt, j) => {
+      const key = `opt_${j}`;
+      optionByKey.set(key, opt);
+      criteria[key] = opt;
+    });
+    criteria[NONE] = '以上都不是，没有合适匹配';
+
+    index.set(qname, { task, optionByKey });
+    questions[qname] = {
+      type: 'choice',
+      instructions: {
+        field: {
+          label: task.field.label,
+          control: task.field.kind,
+        },
+        question:
+          `字典里的值为「${valuePreview(task.value)}」。` +
+          '在 criteria 的候选项中，哪个最应该被选中以填入 `field` 描述的表单字段？' +
+          '措辞不同但语义一致即算匹配；都不合适请选“以上都不是”。',
+      },
+      criteria,
+    };
+  });
+
+  const body = {
+    model: cfg.jevModel || 'jev-latest',
+    state,
+    questions,
+  };
+
+  let data: any;
+  try {
+    data = await postJsonWithRetry(resolveBaseUrl(cfg), cfg.jevApiKey, body);
+  } catch (err) {
+    const message = (err as Error).message || '未知错误';
+    console.warn('[resume-writer] Jev 选项判断失败：', err);
+    return { matches, error: message };
+  }
+
+  const answers = (data?.answers ?? {}) as Record<string, ChoiceAnswer>;
+  for (const [qname, { task, optionByKey }] of index) {
+    const answer = answers[qname];
+    if (!answer || answer.type !== 'choice') continue;
+    if (answer.choice === NONE) continue;
+    const option = optionByKey.get(answer.choice);
+    if (!option) continue;
+    const confidence = typeof answer.confidence === 'number' ? answer.confidence : 0;
+    const probability = answer.probabilities?.[answer.choice] ?? confidence;
+    if (confidence < cfg.jevMinConfidence) continue;
+    matches.push({ field: task.field, option, confidence, probability });
+  }
+
+  return { matches };
+}
+
 /** 测试连接：发一个最小的 noul 请求，确认 key 和地址可用 */
 export async function testJevConnection(
   cfg: Config,

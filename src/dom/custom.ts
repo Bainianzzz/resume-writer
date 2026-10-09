@@ -20,7 +20,7 @@ export const VALUE_SELECTOR = [
 ].join(',');
 
 /** 去掉标签块里的序号前缀，如 “①杭州”“1 杭州” -> “杭州” */
-function stripIndex(text: string): string {
+export function stripIndex(text: string): string {
   return text.replace(/^[\s\d①-⑳·.、，)）+]+/, '').trim();
 }
 

@@ -1,6 +1,6 @@
 import type { FieldDescriptor } from '../types';
 import { normalize, similarity } from '../match/text';
-import { extractCustomValue } from './custom';
+import { extractCustomValue, stripIndex } from './custom';
 
 function setNativeValue(el: HTMLElement, value: string): void {
   const proto = Object.getPrototypeOf(el);
@@ -311,6 +311,27 @@ async function openAndWait(trigger: HTMLElement): Promise<HTMLElement[]> {
 function closeDropdown(trigger: HTMLElement): void {
   document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   if (trigger.getAttribute('aria-expanded') === 'true') clickEl(trigger);
+}
+
+function cleanText(text: string | null | undefined): string {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * 展开下拉并读取当前可用选项的文本（去序号前缀、去重），随后收起。
+ * 供“字典值 → 实际选项”交给 Jev 判断时枚举候选用。
+ */
+export async function readCustomOptions(field: FieldDescriptor): Promise<string[]> {
+  const root = field.el;
+  const trigger = findTrigger(root);
+  const options = await openAndWait(trigger);
+  const out: string[] = [];
+  for (const opt of options) {
+    const text = stripIndex(cleanText(opt.textContent));
+    if (text && text.length <= 40 && !out.includes(text)) out.push(text);
+  }
+  closeDropdown(trigger);
+  return out;
 }
 
 /**

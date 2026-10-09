@@ -93,12 +93,14 @@ Reka 弹出层默认 teleport 到 `document.body`，会逃出 shadow root。`App
 ## 匹配与填报
 
 1. **本地**：标签归一化后依次按 精确 → 同义词组 → 包含 → Dice 打分，取超过阈值（默认 0.62）的最高分。
-2. **Jev**：本地未命中的字段，取本地排序前 N 个候选交给 Jev `choice` 判断；置信度不足或选「以上都不是」则跳过。
-3. **写入**：文本 / 日期 / 下拉 / 单选 / 多选 / 富文本分别处理，派发 `input` / `change` 事件以兼容前端框架。
+2. **Jev 字段匹配**：本地未命中的字段，取本地排序前 N 个候选交给 Jev `choice` 判断；置信度不足或选「以上都不是」则跳过。
+3. **Jev 选项匹配**：选择类字段先本地写值；若字典值与页面选项措辞对不上（多选则逐个片段判断），把「字典值 + 实际选项」交给 Jev `choice` 判断应选哪一项，再用命中的选项文本重填。原生 `select` / `radio` / 复选框组的选项来自 `FieldDescriptor.options`；自定义选择组件（`custom`）需先展开下拉读取当前选项，再交给 Jev。多选会保留本地已命中的项，仅补上 Jev 判定的项。
+4. **写入**：文本 / 日期 / 下拉 / 单选 / 多选 / 富文本分别处理，派发 `input` / `change` 事件以兼容前端框架。
 
 ## Jev 集成
 
-- 每个字段是一个 `choice` 问题，选项为字典 key；已保存信息放在 `state.saved_info`。多个问题并行批量判断。
+- 字段匹配：每个字段是一个 `choice` 问题，选项为字典 key；已保存信息放在 `state.saved_info`。多个问题并行批量判断。
+- 选项匹配：选择类字段本地写值失败或有漏选时，每个待判断的字典值片段是一个 `choice` 问题，选项即页面真实选项文本，把 Jev 判定的选项重新写回。原生控件选项来自扫描结果；自定义组件（div 型 select）用 `readCustomOptions()` 展开下拉枚举选项。两阶段各发一次请求。
 - 接口地址固定，由 key 前缀决定：`jv_live_` 前缀 → `https://jevtypesafeai.com/api/v1/decide`，否则 → `https://api.typesafe.ai/v1/systemone`。
 - 请求走 `GM_xmlhttpRequest`（脚本声明 `@connect api.typesafe.ai` / `@connect jevtypesafeai.com`），绕过页面 CORS。
 - 网络错误、`429` / `529` 指数退避重试，最多 3 次，遵循 `Retry-After`。仍失败则在结果中显示错误，不静默当作「未匹配」。
