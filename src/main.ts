@@ -2,7 +2,6 @@ import { GM_registerMenuCommand } from '$';
 import { mountPanel } from './ui/panel';
 import { fillPage, learnPage } from './core';
 import { scanFields } from './dom/scanner';
-import { loadConfig } from './storage';
 
 function bootstrap(): void {
   if (document.getElementById('rw-root')) return;
@@ -29,13 +28,6 @@ function bootstrap(): void {
       panel.toggle();
     });
   });
-
-  const cfg = loadConfig();
-  if (cfg.autoFillOnLoad) {
-    window.setTimeout(() => {
-      void fillPage();
-    }, 1500);
-  }
 
   console.info('[resume-writer] 网申快速填报助手已加载');
 }

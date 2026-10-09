@@ -12,7 +12,6 @@ export const defaultConfig: Config = {
   jevBaseUrl: '',
   jevModel: 'jev-latest',
   minScore: 0.62,
-  autoFillOnLoad: false,
   jevMinConfidence: 0.5,
 };
 

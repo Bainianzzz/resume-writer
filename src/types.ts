@@ -82,8 +82,6 @@ export interface Config {
   jevModel: string;
   /** 本地模糊匹配阈值 0~1 */
   minScore: number;
-  /** 页面加载后是否自动尝试填充 */
-  autoFillOnLoad: boolean;
   /** 低于该置信度的 Jev 结果不采用 */
   jevMinConfidence: number;
 }
