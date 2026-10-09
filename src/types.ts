@@ -56,6 +56,21 @@ export interface DictEntry {
   origins: string[];
 }
 
+/** 一份身份字典（可保存多份） */
+export interface Profile {
+  id: string;
+  name: string;
+  entries: DictEntry[];
+  updatedAt: number;
+}
+
+/** 身份的摘要信息（用于列表展示） */
+export interface ProfileSummary {
+  id: string;
+  name: string;
+  count: number;
+}
+
 export interface Config {
   /** 是否启用 Jev 语义匹配 */
   jevEnabled: boolean;

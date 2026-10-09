@@ -1,12 +1,18 @@
 import type { Config, DictEntry } from '../types';
 import type { FillResult, LearnResult } from '../core';
 import {
+  activeProfileId,
   clearDict,
+  createProfile,
   defaultConfig,
   deleteEntry,
+  deleteProfile,
   getDict,
+  listProfiles,
   loadConfig,
+  renameProfile,
   saveConfig,
+  setActiveProfile,
   setDict,
   upsertEntries,
 } from '../storage';
@@ -109,6 +115,12 @@ export class Panel {
         this.handleSaveConfig();
       } else if (act === 'testJev') {
         void this.handleTestJev();
+      } else if (act === 'profileNew') {
+        this.handleProfileNew();
+      } else if (act === 'profileRename') {
+        this.handleProfileRename();
+      } else if (act === 'profileDelete') {
+        this.handleProfileDelete();
       }
     });
 
@@ -116,6 +128,12 @@ export class Panel {
     this.panelBody.addEventListener('change', (e) => {
       const input = e.target as HTMLInputElement;
       if (input.dataset.cfg) this.scheduleConfigSave();
+      if (input.dataset.role === 'profile') {
+        setActiveProfile(input.value);
+        this.render();
+        this.toast('已切换身份');
+        return;
+      }
       const key = input.dataset.entryKey;
       if (key && input.dataset.role === 'value') {
         const list = getDict();
@@ -218,6 +236,36 @@ export class Panel {
     input.click();
   }
 
+  private handleProfileNew(): void {
+    const name = prompt('新身份名称', `身份 ${listProfiles().length + 1}`);
+    if (name === null) return;
+    createProfile(name);
+    this.render();
+    this.toast('已新建并切换到新身份');
+  }
+
+  private handleProfileRename(): void {
+    const id = activeProfileId();
+    const cur = listProfiles().find((p) => p.id === id);
+    const name = prompt('重命名身份', cur?.name ?? '');
+    if (name === null) return;
+    renameProfile(id, name);
+    this.render();
+  }
+
+  private handleProfileDelete(): void {
+    const id = activeProfileId();
+    const cur = listProfiles().find((p) => p.id === id);
+    if (listProfiles().length <= 1) {
+      this.toast('至少保留一个身份');
+      return;
+    }
+    if (!confirm(`删除身份「${cur?.name ?? ''}」及其全部内容？`)) return;
+    deleteProfile(id);
+    this.render();
+    this.toast('已删除身份');
+  }
+
   private handleSaveConfig(): void {
     window.clearTimeout(this.configSaveTimer);
     const cfg = this.readConfigForm();
@@ -299,7 +347,26 @@ export class Panel {
   }
 
   private renderDict(): void {
+    const profiles = listProfiles();
+    const activeId = activeProfileId();
+    const options = profiles
+      .map(
+        (p) =>
+          `<option value="${escapeHtml(p.id)}" ${p.id === activeId ? 'selected' : ''}>${escapeHtml(
+            p.name,
+          )}（${p.count}）</option>`,
+      )
+      .join('');
     this.panelBody.innerHTML = `
+      <div class="rw-field">
+        <label class="rw-label">身份</label>
+        <select class="rw-select" data-role="profile">${options}</select>
+      </div>
+      <div class="rw-row">
+        <button class="rw-btn" data-act="profileNew">新建</button>
+        <button class="rw-btn" data-act="profileRename">重命名</button>
+        <button class="rw-btn rw-danger" data-act="profileDelete">删除</button>
+      </div>
       <div class="rw-field">
         <input class="rw-input" data-role="filter" placeholder="搜索字段…" value="${escapeHtml(this.dictFilter)}" />
       </div>
