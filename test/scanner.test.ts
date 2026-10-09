@@ -154,6 +154,16 @@ describe('scanFields：formily/UDesign wrapper', () => {
     expect(f?.kind).toBe('checkbox');
     expect(f?.value).toBe('是');
   });
+
+  it('标签去掉括号补充说明', () => {
+    const raw = '请列出你常用的 AI 工具 & 模型（编码工具：Cursor、GitHub Copilot……）';
+    document.body.innerHTML = wrapper(
+      `data-form-field-name="ai_tools" data-form-field-i18n-name="${raw}"`,
+      `<input class="ud__native-input" value="codex">`,
+    );
+    const fields = scan();
+    expect(fields[0].label).toBe('请列出你常用的 AI 工具 & 模型');
+  });
 });
 
 describe('scanFields：原生控件兜底', () => {

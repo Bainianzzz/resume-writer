@@ -1,5 +1,5 @@
 import type { FieldDescriptor, FieldKind } from '../types';
-import { collectLabels, explicitLabel, ownKey } from './label';
+import { collectLabels, explicitLabel, ownKey, stripParenthetical } from './label';
 import { extractCustomValue, isCustomSelect } from './custom';
 
 const SKIP_INPUT_TYPES = new Set([
@@ -148,13 +148,14 @@ function buildDescriptor(
   const labels = collectLabels(anchor);
   const explicit = explicitLabel(anchor);
   const key = ownKey(anchor);
+  const primary = explicit ? stripParenthetical(explicit) : labels[0];
   return {
     el,
     kind,
     targets,
     inputType: el instanceof HTMLInputElement ? el.type : '',
     labels,
-    label: explicit || labels[0] || key || '(未命名字段)',
+    label: primary || labels[0] || key || '(未命名字段)',
     name: key,
     id: el.getAttribute('id') || '',
     placeholder: (el as HTMLInputElement).placeholder || '',
@@ -171,8 +172,9 @@ function buildDescriptor(
  * 因此返回数组。
  */
 function describeWrapper(w: HTMLElement): FieldDescriptor[] {
-  const label = clean(w.getAttribute('data-form-field-i18n-name')) || explicitLabel(w);
-  if (!label) return [];
+  const rawLabel = clean(w.getAttribute('data-form-field-i18n-name')) || explicitLabel(w);
+  if (!rawLabel) return [];
+  const label = stripParenthetical(rawLabel);
   const key = clean(w.getAttribute('data-form-field-name')) || w.getAttribute('data-form-field-id') || '';
 
   const controls = [...w.querySelectorAll<HTMLElement>(CONTROLS)].filter(

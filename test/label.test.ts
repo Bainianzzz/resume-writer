@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectLabels, explicitKey, explicitLabel, isFormatPlaceholder, ownKey } from '../src/dom/label';
+import { collectLabels, explicitKey, explicitLabel, isFormatPlaceholder, ownKey, stripParenthetical } from '../src/dom/label';
 
 function mount(html: string): HTMLElement {
   document.body.innerHTML = html;
@@ -17,6 +17,28 @@ describe('isFormatPlaceholder', () => {
     for (const s of ['请选择', '请输入姓名', '邮箱', '2023-09']) {
       expect(isFormatPlaceholder(s)).toBe(false);
     }
+  });
+});
+
+describe('stripParenthetical', () => {
+  it('去掉括号补充说明，保留主干', () => {
+    expect(stripParenthetical('请列出你常用的 AI 工具 & 模型（编码工具：Cursor、GitHub Copilot……）')).toBe(
+      '请列出你常用的 AI 工具 & 模型',
+    );
+    expect(stripParenthetical('姓名（必填）')).toBe('姓名');
+  });
+
+  it('支持中英文括号与嵌套', () => {
+    expect(stripParenthetical('描述(Description)')).toBe('描述');
+    expect(stripParenthetical('分数（满分（100）分）')).toBe('分数');
+  });
+
+  it('括号外为空时保留原文', () => {
+    expect(stripParenthetical('（仅说明）')).toBe('（仅说明）');
+  });
+
+  it('无括号时原样返回', () => {
+    expect(stripParenthetical('学校名称')).toBe('学校名称');
   });
 });
 

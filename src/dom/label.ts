@@ -34,6 +34,23 @@ interface LabelOptions {
 }
 
 /**
+ * 去掉标签里的括号补充说明，如
+ * “请列出你常用的 AI 工具 & 模型（编码工具：…）” -> “请列出你常用的 AI 工具 & 模型”。
+ * 若括号外为空则保留原文。
+ */
+export function stripParenthetical(text: string): string {
+  const cleaned = cleanText(text);
+  let prev = cleaned;
+  let out = cleaned.replace(/[（(][^（()）]*[)）]/g, '');
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(/[（(][^（()）]*[)）]/g, '');
+  }
+  const trimmed = cleanText(out).replace(/[：:*]\s*$/, '').trim();
+  return trimmed || cleaned;
+}
+
+/**
  * 字段自带的元数据属性 —— 最可靠的标签来源。
  * 命中一个就不必再猜 DOM 结构。
  */
