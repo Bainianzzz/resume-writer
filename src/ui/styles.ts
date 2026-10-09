@@ -3,7 +3,7 @@ export const PANEL_CSS = `
 :host { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; color: #1f2329; font-size: 13px; line-height: 1.5; }
 .rw-fab { width: 52px; height: 52px; border-radius: 50%; background: #3370ff; color: #fff; border: none; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .rw-fab:hover { background: #245bdb; }
-.rw-panel { position: absolute; right: 0; bottom: 64px; width: 380px; height: min(504px, 80vh); overflow: hidden; background: #fff; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }
+.rw-panel { position: absolute; right: 0; bottom: 64px; width: 380px; height: min(482px, 80vh); overflow: hidden; background: #fff; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }
 .rw-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e5e6eb; }
 .rw-title { font-weight: 600; font-size: 14px; }
 .rw-icon-btn { background: none; border: none; cursor: pointer; color: #646a73; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
@@ -20,6 +20,7 @@ export const PANEL_CSS = `
 .rw-body > * { flex: 0 0 auto; }
 .rw-body > .rw-list, .rw-body > .rw-result { flex: 1 1 auto; min-height: 120px; }
 .rw-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.rw-row:last-child { margin-bottom: 0; }
 .rw-btn { flex: 1; padding: 9px 10px; border-radius: 6px; border: 1px solid #dee0e3; background: #fff; cursor: pointer; font-size: 13px; color: #1f2329; }
 .rw-btn:hover { border-color: #3370ff; color: #3370ff; }
 .rw-btn.rw-primary { background: #3370ff; border-color: #3370ff; color: #fff; }
