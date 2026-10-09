@@ -9,7 +9,6 @@ const CONFIG_KEY = 'rw:config:v1';
 export const defaultConfig: Config = {
   jevEnabled: true,
   jevApiKey: '',
-  jevBaseUrl: '',
   jevModel: 'jev-latest',
   minScore: 0.62,
   jevMinConfidence: 0.5,

@@ -76,8 +76,6 @@ export interface Config {
   jevEnabled: boolean;
   /** Jev API Key */
   jevApiKey: string;
-  /** Jev 接口地址 */
-  jevBaseUrl: string;
   /** Jev 模型 */
   jevModel: string;
   /** 本地模糊匹配阈值 0~1 */

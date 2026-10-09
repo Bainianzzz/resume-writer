@@ -28,9 +28,8 @@ interface ChoiceAnswer {
 
 const NONE = '__none__';
 
-/** 根据 key 前缀推断合适的接口地址 */
+/** 根据 key 前缀推断接口地址（固定，不可配置） */
 export function resolveBaseUrl(cfg: Config): string {
-  if (cfg.jevBaseUrl && cfg.jevBaseUrl.trim()) return cfg.jevBaseUrl.trim();
   if (cfg.jevApiKey.startsWith('jv_live_')) {
     return 'https://jevtypesafeai.com/api/v1/decide';
   }

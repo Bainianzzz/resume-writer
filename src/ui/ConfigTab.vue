@@ -80,14 +80,6 @@ async function testConnection(): Promise<void> {
       />
     </div>
     <div class="rw-field">
-      <label class="rw-label">Jev 接口地址</label>
-      <input
-        class="rw-input"
-        v-model="form.jevBaseUrl"
-        placeholder="留空自动判断，默认 https://api.typesafe.ai/v1/systemone"
-      />
-    </div>
-    <div class="rw-field">
       <label class="rw-label">Jev 模型</label>
       <input class="rw-input" v-model="form.jevModel" />
     </div>

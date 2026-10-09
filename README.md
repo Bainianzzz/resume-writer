@@ -1,15 +1,20 @@
 # 网申快速填报助手
 
-一个基于 **vite-plugin-monkey** 的油猴（userscript）插件，用于网申表单的「学习 → 填报」。
+一个基于 **vite-plugin-monkey** 的油猴（userscript）插件，用于快速填报网申表单信息，具体分为两个阶段：
 
-- **学习**：你手动填好一份网申表，点「学习本页」，插件把「字段标签 → 填写内容」存成字典（保存在浏览器本地）。
-- **填报**：打开任意网申页面，点「一键填报」，插件先做本地模糊匹配，匹配不上的再交给 **Jev**（TypeSafe 的结构化决策模型）做语义匹配，然后把内容填进去。
+- **学习**：手动填好一份网申表，点「学习本页」，插件把「字段标签 → 填写内容」存成字典（保存在浏览器本地）。
+- **填报**：打开任意网申页面，点「一键填报」，插件先做本地模糊匹配，匹配不上的再交给 **Jev**（TypeSafe 的结构化决策模型）做语义匹配，然后把匹配的内容填进去。
 
 产物是单文件 `dist/resume-writer.user.js`，用 Tampermonkey / Violentmonkey 安装。
 
 ## 安装
 
-把 `dist/resume-writer.user.js` 拖进浏览器，或在 Tampermonkey 面板「添加新脚本」里粘贴。本地开发与构建见 [DEVELOPMENT](./DEVELOPMENT.md)。
+1. 前往 GitHub Release 页下载 `resume-writer.user.js`（链接待补）。
+2. 打开 Tampermonkey 面板，点「添加新脚本」。
+3. 删掉编辑器里的默认内容，粘贴 `resume-writer.user.js` 的全部内容，按 `Cmd+S` 保存。
+4. 刷新要使用的网申页面，脚本即生效。
+
+> 同一时间只能装一个版本。已装旧版时，先在面板里删除旧脚本，否则旧脚本会先运行，新版不生效。
 
 ## 使用
 
@@ -20,7 +25,7 @@
 
 页面上会有一个悬浮球，也可通过 Tampermonkey 菜单命令触发学习/填报。
 
-## Jev 配置（可选，但推荐）
+## Jev 配置（可选）
 
 未配置 Jev 时插件只用本地规则（同义词表 + 包含 + Dice 相似度）匹配，能覆盖大部分常见字段。配置 Jev 后可处理同义但措辞不同的字段。
 
@@ -29,7 +34,7 @@
 | 项 | 说明 |
 | --- | --- |
 | Jev API Key | TypeSafe 官方 key（`apikey_...`，从 console.typesafe.ai 获取） |
-| Jev 接口地址 | 留空自动判断：`jv_live_` 前缀 → `https://jevtypesafeai.com/api/v1/decide`；否则 → `https://api.typesafe.ai/v1/systemone`。也可手填其他网关 |
+| Jev 接口地址 | 固定，不可配置：`jv_live_` 前缀 → `https://jevtypesafeai.com/api/v1/decide`；否则 → `https://api.typesafe.ai/v1/systemone` |
 | Jev 模型 | 默认 `jev-latest` |
 | Jev 最低置信度 | 低于该值的结果不采用 |
 
@@ -40,11 +45,12 @@
 ## 文档
 
 - [ARCHITECTURE](./ARCHITECTURE.md) —— 内部设计：Shadow DOM 隔离模型、模块职责、匹配流程、Jev 集成、存储模型、已知限制。
-- [DEVELOPMENT](./DEVELOPMENT.md) —— 本地搭建、开发流程、样式约束、测试、发布。
+- [DEVELOPMENT](./DEVELOPMENT.md) —— 本地搭建、开发流程、测试、发布。
 
 ## Roadmap
 
-- [ ] 自定义下拉组件适配（Ant Design / Element UI 等）
+- [x] 自定义下拉组件适配（UDesign、Ant Design 风格）
+- [ ] 扩展自定义下拉识别到 Element UI 等其他组件库
 - [ ] 字段级匹配结果可视化高亮与一键改选
 - [ ] 每条字典项绑定来源站点，按站点过滤候选
 - [ ] 学习时支持「仅学习标记过的字段」
