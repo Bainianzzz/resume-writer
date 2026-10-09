@@ -7,7 +7,6 @@ function config(partial: Partial<Config> = {}): Config {
   return {
     jevEnabled: true,
     jevApiKey: 'jv_live_test',
-    jevBaseUrl: '',
     jevModel: 'jev-latest',
     minScore: 0.62,
     autoFillOnLoad: false,
@@ -46,10 +45,6 @@ afterEach(() => {
 });
 
 describe('resolveBaseUrl', () => {
-  it('显式地址优先', () => {
-    expect(resolveBaseUrl(config({ jevBaseUrl: 'https://custom/x' }))).toBe('https://custom/x');
-  });
-
   it('jv_live_ 前缀走托管网关', () => {
     expect(resolveBaseUrl(config({ jevApiKey: 'jv_live_abc' }))).toBe(
       'https://jevtypesafeai.com/api/v1/decide',
