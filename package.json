@@ -1,7 +1,7 @@
 {
   "name": "resume-writer",
   "private": true,
-  "version": "0.7.7",
+  "version": "0.7.8",
   "type": "module",
   "description": "网申快速填报助手 —— 学习网申表单内容，并在其他页面一键匹配填报（Tampermonkey 油猴脚本）",
   "scripts": {

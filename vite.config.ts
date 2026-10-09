@@ -9,7 +9,7 @@ export default defineConfig({
       userscript: {
         name: '网申快速填报助手',
         namespace: 'local/resume-writer',
-        version: '0.7.7',
+        version: '0.7.8',
         description:
           '学习网申表单的字段与填写内容并保存为本地字典，之后在任何表单页面一键匹配填报。',
         author: 'resume-writer',

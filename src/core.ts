@@ -91,7 +91,7 @@ export async function fillPage(): Promise<FillResult> {
   for (const field of fields) {
     const local = dict.length ? matchLocal(field, dict, cfg.minScore) : null;
     if (local) {
-      writeField(field, local.entry, `本地:${local.via}`, local.score);
+      writeField(field, local.entry, local.via === 'exact' ? '完全匹配' : '近似匹配', local.score);
     } else {
       unmatched.push(field);
     }
@@ -115,7 +115,7 @@ export async function fillPage(): Promise<FillResult> {
       const outcome = await jevMatch(tasks, cfg);
       if (outcome.error) jevError = outcome.error;
       for (const [field, m] of outcome.matches) {
-        writeField(field, m.entry, 'Jev', m.confidence);
+        writeField(field, m.entry, `jev 推断（${m.confidence.toFixed(2)}）`, m.confidence);
       }
     }
   }
