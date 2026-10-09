@@ -34,7 +34,6 @@
 | 项 | 说明 |
 | --- | --- |
 | Jev API Key | TypeSafe 官方 key（`apikey_...`，从 console.typesafe.ai 获取） |
-| Jev 接口地址 | 固定，不可配置：`jv_live_` 前缀 → `https://jevtypesafeai.com/api/v1/decide`；否则 → `https://api.typesafe.ai/v1/systemone` |
 | Jev 模型 | 默认 `jev-latest` |
 | Jev 最低置信度 | 低于该值的结果不采用 |
 
@@ -46,11 +45,3 @@
 
 - [ARCHITECTURE](./ARCHITECTURE.md) —— 内部设计：Shadow DOM 隔离模型、模块职责、匹配流程、Jev 集成、存储模型、已知限制。
 - [DEVELOPMENT](./DEVELOPMENT.md) —— 本地搭建、开发流程、测试、发布。
-
-## Roadmap
-
-- [x] 自定义下拉组件适配（UDesign、Ant Design 风格）
-- [ ] 扩展自定义下拉识别到 Element UI 等其他组件库
-- [ ] 字段级匹配结果可视化高亮与一键改选
-- [ ] 每条字典项绑定来源站点，按站点过滤候选
-- [ ] 学习时支持「仅学习标记过的字段」
