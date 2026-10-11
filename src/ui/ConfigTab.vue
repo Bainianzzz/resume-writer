@@ -9,10 +9,6 @@ import { persistConfig, resetConfig, state, toast } from './store';
 const form = reactive<Config>({ ...state.config });
 
 // Reka Slider 的 modelValue 是 number[]，包一层单值读写
-const minScore = computed<number[]>({
-  get: () => [form.minScore],
-  set: (v) => (form.minScore = v[0]),
-});
 const minConfidence = computed<number[]>({
   get: () => [form.jevMinConfidence],
   set: (v) => (form.jevMinConfidence = v[0]),
@@ -60,7 +56,7 @@ async function testConnection(): Promise<void> {
 </script>
 
 <template>
-  <div @input="scheduleSave" @change="scheduleSave">
+  <div class="rw-config" @input="scheduleSave" @change="scheduleSave">
     <div class="rw-field">
       <div class="rw-switch-row">
         <SwitchRoot v-model="form.jevEnabled" class="rw-switch" @update:model-value="scheduleSave">
@@ -84,20 +80,6 @@ async function testConnection(): Promise<void> {
       <input class="rw-input" v-model="form.jevModel" />
     </div>
     <div class="rw-field">
-      <label class="rw-label">本地匹配阈值：<span>{{ form.minScore }}</span></label>
-      <SliderRoot
-        v-model="minScore"
-        class="rw-slider"
-        :min="0.3"
-        :max="1"
-        :step="0.01"
-        @update:model-value="scheduleSave"
-      >
-        <SliderTrack class="rw-slider-track"><SliderRange class="rw-slider-range" /></SliderTrack>
-        <SliderThumb class="rw-slider-thumb" />
-      </SliderRoot>
-    </div>
-    <div class="rw-field">
       <label class="rw-label">Jev 最低置信度：<span>{{ form.jevMinConfidence }}</span></label>
       <SliderRoot
         v-model="minConfidence"
@@ -111,7 +93,7 @@ async function testConnection(): Promise<void> {
         <SliderThumb class="rw-slider-thumb" />
       </SliderRoot>
     </div>
-    <div class="rw-row">
+    <div class="rw-row rw-actions">
       <button class="rw-btn rw-primary" @click="save">保存设置</button>
       <button class="rw-btn" @click="testConnection">测试连接</button>
       <button class="rw-btn" @click="reset">恢复默认</button>
