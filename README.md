@@ -2,6 +2,8 @@
 
 [English](./docs/README.en.md) · 中文
 
+![学习与填报流程：手动填一次，点「学习本页」存入浏览器本地字典；换页面点「一键填报」，遇到不同词汇交给 Jev 语义匹配](./docs/assets/workflow.jpg)
+
 油猴脚本（vite-plugin-monkey + TypeScript + Vue 3），快速填报网申表单。
 
 - **学习**：手动填好一份网申表，点「学习本页」，字段与填写内容存入浏览器本地字典。
