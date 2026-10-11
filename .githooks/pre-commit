@@ -1,6 +1,6 @@
 #!/bin/sh
-# main only accepts merges; direct commits are rejected.
-# Local fast-fail guard — the real enforcement lives in the GitHub branch protection rule.
+# main 只接受合并，不接受直接提交。
+# 其他分支：提交前跑一次静态语法检查（tsc），单测与构建留给 CI。
 
 protected="${RW_PROTECTED_BRANCH:-main}"
 branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null)
@@ -8,6 +8,18 @@ branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null)
 if [ "$branch" = "$protected" ]; then
   echo "✖ Direct commits to '${protected}' are blocked: this branch only accepts merges." >&2
   echo "  Create a branch, commit there, then open a pull request." >&2
+  exit 1
+fi
+
+tsc_bin="./node_modules/.bin/tsc"
+if [ ! -x "$tsc_bin" ]; then
+  echo "⚠ ${tsc_bin} not found — run npm install; skipping the static check." >&2
+  exit 0
+fi
+
+echo "▶ static check: tsc" >&2
+if ! "$tsc_bin"; then
+  echo "✖ tsc reported errors. Fix them, then commit again." >&2
   exit 1
 fi
 
