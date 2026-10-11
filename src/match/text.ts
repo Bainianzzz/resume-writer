@@ -52,23 +52,30 @@ export function tokens(s: string): Set<string> {
 }
 
 /**
- * 轻量“正则/模糊”预筛得分。只看是否有任何字面重叠，
- * 用于在调用 Jev 之前把字典缩小到可能相关的条目。
- * 返回 0 表示毫无字面关联，可整条排除。
+ * 字面证据层级。只做字面判断，不做任何加权打分：
+ *   5 完全相等 / 4 同义组 / 3 包含 / 2 二元组交集 / 1 仅单字交集 / 0 无交集
+ * 用于在调用 Jev 之前筛出“疑似选项”——0 表示不在字典里，直接放弃该字段。
  */
-export function looseScore(a: string, b: string): number {
+export function literalEvidence(a: string, b: string): number {
   const na = normalize(a);
   const nb = normalize(b);
   if (!na || !nb) return 0;
-  if (na === nb) return 1;
-  if (na.length >= 2 && nb.length >= 2 && (na.includes(nb) || nb.includes(na))) return 0.8;
+  if (na === nb) return 5;
+  if (sameSynonymGroup(na, nb)) return 4;
+  if (na.length >= 2 && nb.length >= 2 && (na.includes(nb) || nb.includes(na))) return 3;
   const ta = tokens(na);
   const tb = tokens(nb);
   if (ta.size === 0 || tb.size === 0) return 0;
-  let inter = 0;
-  for (const t of ta) if (tb.has(t)) inter++;
-  if (inter === 0) return 0;
-  return Math.min(0.75, 0.25 + 0.5 * (inter / Math.min(ta.size, tb.size)));
+  let bigram = false;
+  let single = false;
+  for (const t of ta) {
+    if (!tb.has(t)) continue;
+    if (t.length >= 2) bigram = true;
+    else single = true;
+  }
+  if (bigram) return 2;
+  if (single) return 1;
+  return 0;
 }
 
 /** Dice 系数（字符二元组） */
@@ -123,10 +130,31 @@ const SYNONYM_GROUPS: string[][] = [
   ['获奖情况', '奖励', '荣誉', 'awards', 'honor'],
 ];
 
+/**
+ * 同义词组索引。同一个词可能出现在多行（如「民族」），按行合并成并查集，
+ * 避免后写覆盖导致同组词互不相认。
+ */
 const GROUP_INDEX = new Map<string, number>();
-SYNONYM_GROUPS.forEach((group, idx) => {
-  for (const word of group) GROUP_INDEX.set(normalize(word), idx);
-});
+{
+  const parent = SYNONYM_GROUPS.map((_, i) => i);
+  const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+  const union = (a: number, b: number): void => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[rb] = ra;
+  };
+  const owner = new Map<string, number>();
+  SYNONYM_GROUPS.forEach((group, idx) => {
+    for (const word of group) {
+      const key = normalize(word);
+      if (!key) continue;
+      const prev = owner.get(key);
+      if (prev === undefined) owner.set(key, idx);
+      else union(prev, idx);
+    }
+  });
+  for (const [key, idx] of owner) GROUP_INDEX.set(key, find(idx));
+}
 
 /** 两个文本是否属于同一同义词组 */
 export function sameSynonymGroup(a: string, b: string): boolean {

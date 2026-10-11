@@ -43,11 +43,11 @@ describe('配置', () => {
   });
 
   it('保存后读回并与默认值合并', () => {
-    const cfg: Config = { ...defaultConfig, jevApiKey: 'jv_live_abc', minScore: 0.8 };
+    const cfg: Config = { ...defaultConfig, jevApiKey: 'jv_live_abc', jevMinConfidence: 0.8 };
     saveConfig(cfg);
     const loaded = loadConfig();
     expect(loaded.jevApiKey).toBe('jv_live_abc');
-    expect(loaded.minScore).toBe(0.8);
+    expect(loaded.jevMinConfidence).toBe(0.8);
     expect(loaded.jevModel).toBe(defaultConfig.jevModel);
   });
 });

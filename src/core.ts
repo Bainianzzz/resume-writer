@@ -3,7 +3,7 @@ import { getDict, loadConfig, upsertEntries } from './storage';
 import { scanFields } from './dom/scanner';
 import { fillAsyncField, fillField, readCustomOptions } from './dom/setter';
 import { extractCustomValue } from './dom/custom';
-import { matchLocal, prefilterCandidates } from './match/local';
+import { matchExact, prefilterCandidates } from './match/local';
 import { jevMatch, jevPickOptions } from './match/jev';
 import type { JevOptionMatch, JevOptionTask } from './match/jev';
 import { normalize, similarity } from './match/text';
@@ -136,34 +136,30 @@ export async function fillPage(): Promise<FillResult> {
   };
 
   for (const field of fields) {
-    const local = dict.length ? matchLocal(field, dict, cfg.minScore) : null;
-    if (local) {
-      writeField(field, local.entry, local.via === 'exact' ? '完全匹配' : '近似匹配', local.score);
+    const exact = dict.length ? matchExact(field, dict) : null;
+    if (exact) {
+      writeField(field, exact, '完全匹配', 1);
     } else {
       unmatched.push(field);
     }
   }
 
+  // 疑似选项：字面分层后的候选。空 = 不在字典里，直接放弃该字段
+  const candidatesByField = new Map<FieldDescriptor, DictEntry[]>();
+  for (const field of unmatched) {
+    const candidates = dict.length ? prefilterCandidates(field, dict).map((c) => c.entry) : [];
+    if (candidates.length) candidatesByField.set(field, candidates);
+  }
+
   let jevError: string | undefined;
-  /** 本地预筛后仍有候选、真正发给 Jev 的字段 */
-  const jevAsked = new Set<FieldDescriptor>();
 
-  if (cfg.jevEnabled && cfg.jevApiKey && unmatched.length) {
-    const tasks = unmatched
-      .map((field) => ({
-        field,
-        candidates: prefilterCandidates(field, dict).map((r) => r.entry),
-      }))
-      // 本地预筛后毫无相关候选的字段，不浪费一次模型调用
-      .filter((t) => t.candidates.length > 0);
-    for (const t of tasks) jevAsked.add(t.field);
+  if (cfg.jevEnabled && cfg.jevApiKey && candidatesByField.size) {
+    const tasks = [...candidatesByField].map(([field, candidates]) => ({ field, candidates }));
 
-    if (tasks.length) {
-      const outcome = await jevMatch(tasks, cfg);
-      if (outcome.error) jevError = outcome.error;
-      for (const [field, m] of outcome.matches) {
-        writeField(field, m.entry, `jev 推断（${m.confidence.toFixed(2)}）`, m.confidence);
-      }
+    const outcome = await jevMatch(tasks, cfg);
+    if (outcome.error) jevError = outcome.error;
+    for (const [field, m] of outcome.matches) {
+      writeField(field, m.entry, `jev 推断（${m.confidence.toFixed(2)}）`, m.confidence);
     }
   }
 
@@ -275,7 +271,7 @@ export async function fillPage(): Promise<FillResult> {
   // 未匹配字段也记录，方便用户看到漏了什么
   for (const field of unmatched) {
     if (!details.some((d) => d.label === field.label)) {
-      const noCandidate = cfg.jevEnabled && cfg.jevApiKey && !jevAsked.has(field);
+      const noCandidate = !candidatesByField.has(field);
       details.push({
         label: field.label,
         value: '',

@@ -86,18 +86,19 @@ Reka 弹出层默认 teleport 到 `document.body`，会逃出 shadow root。`App
 | `dom/custom.ts` | 识别自定义下拉组件，读取已选值 |
 | `dom/scanner.ts` | 扫描页面，产出 `FieldDescriptor[]`（种类、标签、候选、选择器） |
 | `dom/setter.ts` | `fillField()` 同步写入；`fillAsyncField()` 处理自定义组件与区间字段 |
-| `match/text.ts` | 归一化、同义词组、Dice 相似度 |
-| `match/local.ts` | 本地打分与候选排序 |
+| `match/text.ts` | 归一化、同义词组、Dice 相似度、字面证据分层 |
+| `match/local.ts` | 完全匹配判定 + 疑似选项分层筛选（不做打分） |
 | `match/jev.ts` | Jev `choice` 客户端，含连接测试与重试 |
 | `ui/store.ts` | 响应式状态 + GM 桥接 + toast manager |
 | `ui/panel.ts` | 建宿主、attachShadow、注入 `PANEL_CSS`、建 portal、`createApp` 挂载 |
 
 ## 匹配与填报
 
-1. **本地**：标签归一化后依次按 精确 → 同义词组 → 包含 → Dice 打分，取超过阈值（默认 0.62）的最高分。
-2. **Jev 字段匹配**：本地未命中的字段，取本地排序前 N 个候选交给 Jev `choice` 判断；置信度不足或选「以上都不是」则跳过。
-3. **Jev 选项匹配**：选择类字段先本地写值；若字典值与页面选项措辞对不上（多选则逐个片段判断），把「字典值 + 实际选项」交给 Jev `choice` 判断应选哪一项，再用命中的选项文本重填。原生 `select` / `radio` / 复选框组的选项来自 `FieldDescriptor.options`；自定义选择组件（`custom`）需先展开下拉读取当前选项，再交给 Jev。多选会保留本地已命中的项，仅补上 Jev 判定的项。
-4. **写入**：文本 / 日期 / 下拉 / 单选 / 多选 / 富文本分别处理，派发 `input` / `change` 事件以兼容前端框架。
+1. **本地完全匹配**：只认完全匹配——标签归一化后与字典条目 label / 别名完全相同才直填，不做任何近似判断。
+2. **疑似选项**：未命中的字段按字面证据分层（同义组 > 包含 > 二元组 > 仅单字）筛出候选，层内保持字典原序，每字段截断到 6 条。筛完为空 = 不在字典里，直接放弃该字段。
+3. **Jev 字段匹配**：把疑似选项交给 Jev `choice` 判断；置信度不足或选「以上都不是」则跳过。
+4. **Jev 选项匹配**：选择类字段先本地写值；若字典值与页面选项措辞对不上（多选则逐个片段判断），把「字典值 + 实际选项」交给 Jev `choice` 判断应选哪一项，再用命中的选项文本重填。原生 `select` / `radio` / 复选框组的选项来自 `FieldDescriptor.options`；自定义选择组件（`custom`）需先展开下拉读取当前选项，再交给 Jev。多选会保留本地已命中的项，仅补上 Jev 判定的项。
+5. **写入**：文本 / 日期 / 下拉 / 单选 / 多选 / 富文本分别处理，派发 `input` / `change` 事件以兼容前端框架。
 
 ## Jev 集成
 
@@ -115,7 +116,7 @@ Reka 弹出层默认 teleport 到 `document.body`，会逃出 shadow root。`App
 
 | 键 | 内容 |
 | --- | --- |
-| `rw:config:v1` | 全局配置（Jev 开关 / Key / 模型、匹配阈值、最低置信度等） |
+| `rw:config:v1` | 全局配置（Jev 开关 / Key / 模型、最低置信度等） |
 | `rw:profiles:v1` | 多身份字典：`{ activeId, profiles: Profile[] }` |
 | `rw:dict:v1` | 旧版单份字典，首次加载迁移进默认身份 |
 
