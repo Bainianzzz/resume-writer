@@ -24,6 +24,8 @@ export interface FieldDescriptor {
   labels: string[];
   /** 最佳标签 */
   label: string;
+  /** 所属表单区域标题（如“实习经历”），无则为空 */
+  section?: string;
   name: string;
   id: string;
   placeholder: string;
@@ -78,16 +80,6 @@ export interface Config {
   jevApiKey: string;
   /** Jev 模型 */
   jevModel: string;
-  /** 本地模糊匹配阈值 0~1 */
-  minScore: number;
   /** 低于该置信度的 Jev 结果不采用 */
   jevMinConfidence: number;
-}
-
-/** 匹配结果 */
-export interface MatchResult {
-  entry: DictEntry;
-  score: number;
-  /** 匹配来源 */
-  via: 'exact' | 'alias' | 'contains' | 'fuzzy' | 'jev';
 }

@@ -8,7 +8,6 @@ function config(partial: Partial<Config> = {}): Config {
     jevEnabled: true,
     jevApiKey: 'jv_live_test',
     jevModel: 'jev-latest',
-    minScore: 0.62,
     jevMinConfidence: 0.5,
     ...partial,
   };

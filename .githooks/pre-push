@@ -1,0 +1,18 @@
+#!/bin/sh
+# main only accepts merges: pushing to it directly is blocked locally.
+# Pull-request merges happen server-side and are not affected.
+
+protected="${RW_PROTECTED_BRANCH:-main}"
+remote_main="refs/heads/${protected}"
+status=0
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  if [ "$remote_ref" = "$remote_main" ]; then
+    echo "✖ Direct pushes to '${protected}' are blocked: this branch only accepts merges." >&2
+    echo "  Push a feature branch and open a pull request." >&2
+    status=1
+  fi
+done
+
+exit $status

@@ -32,7 +32,7 @@ npm run test:watch
 ## 测试
 
 - Vitest + jsdom，配置在 `vitest.config.ts`（不加载 `vite-plugin-monkey`）。`$` 别名到 `test/mocks/gm.ts` 模拟 GM API。
-- 现有用例：`label`、`custom`、`text`、`jev`、`storage`（含身份与迁移）、`style-guard`。
+- 现有用例：`label`、`custom`、`section`、`text`、`local`、`jev`、`storage`（含身份与迁移）、`style-guard`。
 - DOM 行为（扫描、写入）不写 vitest 用例，见下方端到端。
 
 > AI：vitest 只测纯逻辑。新增匹配、解析、存储逻辑尽量补测试。`test/` 有自己的 `tsconfig.json`。
@@ -62,5 +62,18 @@ npm run test:watch
 userscript 元数据（`name` / `namespace` / `description` / `match` / `connect` 等）在 `vite.config.ts` 的 `monkey({ userscript })` 里维护。
 
 ## 提交
+
+`main` 只接受合并，不接受直接提交。
+
+- **服务端**：GitHub 分支保护规则拦住直接 push / 强推 / 删除。
+- **本地**：`.githooks/` 的 `pre-commit` 与 `pre-push` 提前拦下直接提交、直接推 `main`。新克隆需要启用一次：
+
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+
+  这类钩子可以用 `--no-verify` 绕过，所以真正的约束在服务端。
+
+日常流程：切特性分支 → 提交 → push 特性分支 → 开 PR → **squash merge** 进 `main`。
 
 > AI：改完代码默认不提交、不推送，把改动留在工作区。只有用户明确要求提交时才 `git commit`。

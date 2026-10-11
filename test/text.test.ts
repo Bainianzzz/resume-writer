@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   charBigrams,
   dice,
-  looseScore,
+  literalEvidence,
   normalize,
   sameSynonymGroup,
   similarity,
@@ -50,24 +50,27 @@ describe('tokens', () => {
   });
 });
 
-describe('looseScore（Jev 预筛）', () => {
-  it('完全相同为 1', () => {
-    expect(looseScore('项目名称', '项目名称')).toBe(1);
+describe('literalEvidence（疑似选项门禁）', () => {
+  it('完全相同为最高层级', () => {
+    expect(literalEvidence('项目名称', '项目名称')).toBe(5);
   });
 
-  it('包含关系给高分', () => {
-    expect(looseScore('描述', '项目描述')).toBe(0.8);
+  it('同义组次之', () => {
+    expect(literalEvidence('毕业院校', '学校')).toBe(4);
+  });
+
+  it('包含关系再次之', () => {
+    expect(literalEvidence('描述', '项目描述')).toBe(3);
+  });
+
+  it('共享二元组高于仅共享单字', () => {
+    expect(literalEvidence('毕业时间', '毕业院校')).toBe(2);
+    expect(literalEvidence('专业', '毕业院校')).toBe(1);
   });
 
   it('毫无字面关联为 0', () => {
-    expect(looseScore('描述', '项目名称')).toBe(0);
-    expect(looseScore('手机', '邮箱')).toBe(0);
-  });
-
-  it('部分字面重叠落在 (0,1)', () => {
-    const s = looseScore('期望职位', '应聘职位');
-    expect(s).toBeGreaterThan(0);
-    expect(s).toBeLessThan(1);
+    expect(literalEvidence('描述', '项目名称')).toBe(0);
+    expect(literalEvidence('手机', '邮箱')).toBe(0);
   });
 });
 
@@ -75,6 +78,12 @@ describe('sameSynonymGroup', () => {
   it('同组为真，跨组为假', () => {
     expect(sameSynonymGroup('学历', '最高学历')).toBe(true);
     expect(sameSynonymGroup('学历', '专业')).toBe(false);
+  });
+
+  it('重复出现在多行的词按行合并（民族）', () => {
+    expect(sameSynonymGroup('民族', 'nation')).toBe(true);
+    expect(sameSynonymGroup('民族', 'ethnic')).toBe(true);
+    expect(sameSynonymGroup('民族', 'nationality')).toBe(true);
   });
 });
 

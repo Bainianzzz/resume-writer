@@ -1,85 +1,81 @@
-import type { DictEntry, FieldDescriptor, MatchResult } from '../types';
-import { looseScore, normalize, sameSynonymGroup, similarity } from './text';
+import type { DictEntry, FieldDescriptor } from '../types';
+import { literalEvidence, normalize } from './text';
 
-/** 一个字段最多送给 Jev 的候选数 */
-export const JEV_CANDIDATE_LIMIT = 12;
+/** 一个字段最多送给 Jev 的疑似选项数 */
+export const JEV_CANDIDATE_LIMIT = 6;
 
-function classify(score: number, a: string, b: string): MatchResult['via'] {
-  if (normalize(a) === normalize(b)) return 'exact';
-  if (score >= 0.95 || sameSynonymGroup(normalize(a), normalize(b))) return 'alias';
-  if (score >= 0.7) return 'contains';
-  return 'fuzzy';
-}
-
-function scoreEntry(field: FieldDescriptor, entry: DictEntry): { score: number; via: MatchResult['via'] } {
-  const fieldLabels = field.labels.length ? field.labels : [field.label];
-  const entryLabels = [entry.label, ...entry.aliases].filter(Boolean);
-  let best = 0;
-  let via: MatchResult['via'] = 'fuzzy';
-  for (const fl of fieldLabels) {
-    for (const el of entryLabels) {
-      const s = similarity(fl, el);
-      if (s > best) {
-        best = s;
-        via = classify(s, fl, el);
-      }
-    }
-  }
-  return { score: best, via };
-}
-
-/** 按分数排序的候选（用于给 Jev 预筛） */
-export function rankCandidates(
-  field: FieldDescriptor,
-  dict: DictEntry[],
-): Array<{ entry: DictEntry; score: number }> {
-  return dict
-    .map((entry) => ({ entry, score: scoreEntry(field, entry).score }))
-    .sort((a, b) => b.score - a.score);
+/** 字段侧参与匹配的全部标签 */
+function fieldLabels(field: FieldDescriptor): string[] {
+  const labels = field.labels.length ? field.labels : [field.label];
+  return labels.filter(Boolean);
 }
 
 /**
- * 先用正则/模糊匹配把字典缩小到“可能相关”的条目，再交给 Jev。
- * 无任何字面关联的条目直接排除；数量封顶，避免把整个字典发给模型。
+ * 剥掉字段自己所属区域的前缀。
+ * 区域前缀只用于区分同名子字段（`实习经历·描述` vs `项目经历·描述`），
+ * 不该参与「有没有字面关联」的判断——否则同区字段会因为共享前缀而两两成为疑似选项。
+ */
+function stripOwnSection(label: string, section?: string): string {
+  if (!section) return label;
+  const prefix = `${section}·`;
+  return label.startsWith(prefix) ? label.slice(prefix.length) : label;
+}
+
+/** 字段与单条字典记录之间的最强字面证据层级（0 = 无交集） */
+export function entryEvidence(field: FieldDescriptor, entry: DictEntry): number {
+  const section = field.section;
+  const entryLabels = [entry.label, ...entry.aliases]
+    .filter(Boolean)
+    .map((l) => stripOwnSection(l, section));
+  let best = 0;
+  for (const fl of fieldLabels(field).map((l) => stripOwnSection(l, section))) {
+    for (const el of entryLabels) {
+      const e = literalEvidence(fl, el);
+      if (e > best) best = e;
+    }
+  }
+  return best;
+}
+
+/**
+ * 完全匹配：归一化后与条目 label / 别名完全相等。命中即本地直填，不调 Jev。
+ * 优先 label 命中（比只命中别名更可信），各自保持字典顺序。
+ */
+export function matchExact(field: FieldDescriptor, dict: DictEntry[]): DictEntry | null {
+  const wanted = new Set(fieldLabels(field).map(normalize).filter(Boolean));
+  if (!wanted.size) return null;
+  for (const entry of dict) {
+    if (entry.label && wanted.has(normalize(entry.label))) return entry;
+  }
+  for (const entry of dict) {
+    for (const alias of entry.aliases) {
+      if (alias && wanted.has(normalize(alias))) return entry;
+    }
+  }
+  return null;
+}
+
+export interface Candidate {
+  entry: DictEntry;
+  /** 字面证据层级，越大越强 */
+  evidence: number;
+}
+
+/**
+ * 疑似选项：按字面证据分层（同义组 > 包含 > 二元组 > 单字），
+ * 不做任何加权打分；层内保持字典原序（sort 稳定），超出上限只截尾部。
+ * 返回空数组 = 不在字典里，调用方应放弃该字段。
  */
 export function prefilterCandidates(
   field: FieldDescriptor,
   dict: DictEntry[],
   limit = JEV_CANDIDATE_LIMIT,
-): Array<{ entry: DictEntry; score: number; loose: number }> {
-  const fieldLabels = field.labels.length ? field.labels : [field.label];
-  const scored: Array<{ entry: DictEntry; score: number; loose: number }> = [];
-
+): Candidate[] {
+  const scored: Candidate[] = [];
   for (const entry of dict) {
-    const entryLabels = [entry.label, ...entry.aliases].filter(Boolean);
-    let loose = 0;
-    for (const fl of fieldLabels) {
-      for (const el of entryLabels) {
-        const s = looseScore(fl, el);
-        if (s > loose) loose = s;
-      }
-    }
-    if (loose <= 0) continue;
-    scored.push({ entry, score: scoreEntry(field, entry).score, loose });
+    const evidence = entryEvidence(field, entry);
+    if (evidence > 0) scored.push({ entry, evidence });
   }
-
-  scored.sort((a, b) => b.score - a.score || b.loose - a.loose);
+  scored.sort((a, b) => b.evidence - a.evidence);
   return scored.slice(0, limit);
-}
-
-/** 本地匹配单个字段 */
-export function matchLocal(
-  field: FieldDescriptor,
-  dict: DictEntry[],
-  minScore: number,
-): MatchResult | null {
-  let best: MatchResult | null = null;
-  for (const entry of dict) {
-    const { score, via } = scoreEntry(field, entry);
-    if (!best || score > best.score) {
-      best = { entry, score, via };
-    }
-  }
-  if (best && best.score >= minScore) return best;
-  return null;
 }

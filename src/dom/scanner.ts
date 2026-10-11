@@ -1,6 +1,7 @@
 import type { FieldDescriptor, FieldKind } from '../types';
 import { collectLabels, explicitLabel, ownKey, stripParenthetical } from './label';
 import { extractCustomValue, isCustomSelect } from './custom';
+import { applySectionPrefix, inferSection } from './section';
 
 const SKIP_INPUT_TYPES = new Set([
   'hidden',
@@ -379,5 +380,13 @@ export function scanFields(): FieldDescriptor[] {
     if (d) descriptors.push(d);
   }
 
-  return descriptors;
+  return descriptors.map(withSection);
+}
+
+/** 给字段名加上所属区域前缀，让同名子字段（如各区域的“描述”）不再互相覆盖 */
+function withSection(d: FieldDescriptor): FieldDescriptor {
+  const section = inferSection(d.el, d.labels.length ? d.labels : [d.label]);
+  if (!section) return d;
+  const prefixed = applySectionPrefix(d, section);
+  return prefixed === d ? d : { ...prefixed, section };
 }

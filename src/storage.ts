@@ -10,7 +10,6 @@ export const defaultConfig: Config = {
   jevEnabled: true,
   jevApiKey: '',
   jevModel: 'jev-latest',
-  minScore: 0.62,
   jevMinConfidence: 0.5,
 };
 
