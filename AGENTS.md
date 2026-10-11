@@ -21,3 +21,4 @@
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md)：内部设计
 - [DEVELOPMENT.md](./DEVELOPMENT.md)：开发流程、安装到浏览器、端到端测试
+- [CONTRIBUTING.md](./CONTRIBUTING.md)：分支、提交信息、合并门禁与发布
