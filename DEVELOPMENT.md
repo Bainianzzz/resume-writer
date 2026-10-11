@@ -32,7 +32,7 @@ npm run test:watch
 ## 测试
 
 - Vitest + jsdom，配置在 `vitest.config.ts`（不加载 `vite-plugin-monkey`）。`$` 别名到 `test/mocks/gm.ts` 模拟 GM API。
-- 现有用例：`label`、`custom`、`text`、`jev`、`storage`（含身份与迁移）、`style-guard`。
+- 现有用例：`label`、`custom`、`section`、`text`、`local`、`jev`、`storage`（含身份与迁移）、`style-guard`。
 - DOM 行为（扫描、写入）不写 vitest 用例，见下方端到端。
 
 > AI：vitest 只测纯逻辑。新增匹配、解析、存储逻辑尽量补测试。`test/` 有自己的 `tsconfig.json`。

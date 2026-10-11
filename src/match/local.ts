@@ -10,11 +10,25 @@ function fieldLabels(field: FieldDescriptor): string[] {
   return labels.filter(Boolean);
 }
 
+/**
+ * 剥掉字段自己所属区域的前缀。
+ * 区域前缀只用于区分同名子字段（`实习经历·描述` vs `项目经历·描述`），
+ * 不该参与「有没有字面关联」的判断——否则同区字段会因为共享前缀而两两成为疑似选项。
+ */
+function stripOwnSection(label: string, section?: string): string {
+  if (!section) return label;
+  const prefix = `${section}·`;
+  return label.startsWith(prefix) ? label.slice(prefix.length) : label;
+}
+
 /** 字段与单条字典记录之间的最强字面证据层级（0 = 无交集） */
 export function entryEvidence(field: FieldDescriptor, entry: DictEntry): number {
-  const entryLabels = [entry.label, ...entry.aliases].filter(Boolean);
+  const section = field.section;
+  const entryLabels = [entry.label, ...entry.aliases]
+    .filter(Boolean)
+    .map((l) => stripOwnSection(l, section));
   let best = 0;
-  for (const fl of fieldLabels(field)) {
+  for (const fl of fieldLabels(field).map((l) => stripOwnSection(l, section))) {
     for (const el of entryLabels) {
       const e = literalEvidence(fl, el);
       if (e > best) best = e;

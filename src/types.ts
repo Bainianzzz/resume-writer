@@ -24,6 +24,8 @@ export interface FieldDescriptor {
   labels: string[];
   /** 最佳标签 */
   label: string;
+  /** 所属表单区域标题（如“实习经历”），无则为空 */
+  section?: string;
   name: string;
   id: string;
   placeholder: string;

@@ -3,13 +3,14 @@ import { JEV_CANDIDATE_LIMIT, matchExact, prefilterCandidates } from '../src/mat
 import { normalize } from '../src/match/text';
 import type { DictEntry, FieldDescriptor, FieldKind } from '../src/types';
 
-function field(labels: string[], kind: FieldKind = 'text'): FieldDescriptor {
+function field(labels: string[], kind: FieldKind = 'text', section?: string): FieldDescriptor {
   return {
     el: document.createElement('input'),
     kind,
     inputType: 'text',
     labels,
     label: labels[0],
+    section,
     name: '',
     id: '',
     placeholder: '',
@@ -79,5 +80,31 @@ describe('prefilterCandidates：字面证据分层 + 截断', () => {
     const got = prefilterCandidates(field(['项目名称']), many);
     expect(got).toHaveLength(JEV_CANDIDATE_LIMIT);
     expect(got[0].entry.label).toBe('项目0名称');
+  });
+});
+
+describe('区域前缀不参与候选判断', () => {
+  const dict = [
+    entry('基本信息·姓名'),
+    entry('基本信息·证件号码'),
+    entry('项目经历·描述'),
+    entry('实习经历·描述'),
+  ];
+
+  it('同区字段不会因为共享区域名而互为疑似选项', () => {
+    const got = prefilterCandidates(field(['基本信息·出生日期'], 'text', '基本信息'), dict);
+    expect(got.map((c) => c.entry.label)).toEqual([]);
+  });
+
+  it('剥掉前缀后仍能按真实标签命中', () => {
+    const got = prefilterCandidates(field(['基本信息·姓名'], 'text', '基本信息'), dict);
+    expect(got.map((c) => c.entry.label)).toEqual(['基本信息·姓名']);
+  });
+
+  it('同名子字段按区域区分，各自只命中自己那条', () => {
+    const work = prefilterCandidates(field(['实习经历·描述'], 'text', '实习经历'), dict);
+    expect(work.map((c) => c.entry.label)).toContain('实习经历·描述');
+    const proj = prefilterCandidates(field(['项目经历·描述'], 'text', '项目经历'), dict);
+    expect(proj.map((c) => c.entry.label)).toContain('项目经历·描述');
   });
 });
