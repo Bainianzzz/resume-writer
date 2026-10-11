@@ -40,8 +40,11 @@ refact(match): fill only exact matches locally, defer the rest to Jev
 
 ## 发布
 
-1. 同步更新 `vite.config.ts` 与 `package.json` 的 `version`。
-2. `npm run build`，产物为 `dist/resume-writer.user.js`。
-3. 把 `resume-writer.user.js` 挂到 GitHub Release。
+发布由 `.github/workflows/release.yml` 自动完成：PR 合入 `main` 后，workflow 读取版本号，若对应的 release 还不存在，就构建并发出 `vX.Y.Z`，产物是 `dist/resume-writer.user.js`。版本号没变时自动跳过，不会重复发版。
+
+所以发布只要两步：
+
+1. 在一个 PR 里同步更新 `vite.config.ts` 与 `package.json` 的 `version`（两处必须一致，workflow 会校验）。
+2. 合入 `main`。
 
 userscript 元数据（`name` / `namespace` / `description` / `match` / `connect` 等）在 `vite.config.ts` 的 `monkey({ userscript })` 中维护。
