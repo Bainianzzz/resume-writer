@@ -1,5 +1,7 @@
 # 开发
 
+[English](./docs/DEVELOPMENT.en.md) · 中文
+
 内部设计见 [ARCHITECTURE](./ARCHITECTURE.md)，分支与发布见 [CONTRIBUTING](./CONTRIBUTING.md)。
 
 ## 环境

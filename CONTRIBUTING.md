@@ -1,5 +1,7 @@
 # 贡献指南
 
+[English](./docs/CONTRIBUTING.en.md) · 中文
+
 开发、测试与端到端验证见 [DEVELOPMENT](./DEVELOPMENT.md)。
 
 ## 核心约定

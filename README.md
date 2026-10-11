@@ -1,5 +1,7 @@
 # 网申快速填报助手
 
+[English](./docs/README.en.md) · 中文
+
 油猴脚本（vite-plugin-monkey + TypeScript + Vue 3），快速填报网申表单。
 
 - **学习**：手动填好一份网申表，点「学习本页」，字段与填写内容存入浏览器本地字典。

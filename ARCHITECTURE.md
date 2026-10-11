@@ -1,5 +1,7 @@
 # 架构
 
+[English](./docs/ARCHITECTURE.en.md) · 中文
+
 内部实现。使用见 [README](./README.md)，开发见 [DEVELOPMENT](./DEVELOPMENT.md)。
 
 ## 总体形态
